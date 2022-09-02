@@ -44,7 +44,7 @@ def collect_data(steps: int, std_u: float, std_w: float) -> Tuple[np.ndarray, np
 
     for i in range(steps):
         U[:, i] = std_u * np.random.normal(size=(dim_u))
-        X[:, i+1] = A @ X[:, i] +  np.squeeze(B * U[:, i]) + std_w * np.random.uniform(low=-0.1, high=0.1)#(size=(dim_x))
+        X[:, i+1] = A @ X[:, i] +  np.squeeze(B * U[:, i]) + std_w * np.random.normal(size=(dim_x)) #(low=-0.1, high=0.1)#(size=(dim_x))
 
     return X.T, U.T
 
@@ -94,6 +94,8 @@ for id, sample_size in enumerate(samples):
     R2 = np.power(X[1:] - Y2.T, 2).sum()
     F = ((R1-R2)/k)/(  R2 / nu)
     print(f'T: {sample_size} - F: {F} - P: {1-scipystats.f.cdf(F, k, nu)}')
+
+    
 
     collection1 = PatchCollection([Mz.polygon],  facecolor=CB_color_cycle[0], edgecolor='black', lw=1.2, label='Original data')
     collection2 = PatchCollection([Mz_poisoned.polygon],  facecolor=CB_color_cycle[1], edgecolor='black', lw=1.2, label='Poisoned data')
