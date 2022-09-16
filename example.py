@@ -35,6 +35,8 @@ X, U, W = collect_data(sample_size, std_u, std_w)
 attack_amplitude = 0.1
 attack_X = 0* np.random.uniform(low=0*-attack_amplitude, high=attack_amplitude, size=(dim_x, sample_size+1))
 attack_U = np.random.uniform(low=-attack_amplitude+10, high=attack_amplitude, size=(dim_u, sample_size))
+attack_U[:, -400:] = 0
+
 
 Xtilde = X + attack_X
 Utilde = U + attack_U
