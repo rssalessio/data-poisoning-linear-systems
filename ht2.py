@@ -35,7 +35,8 @@ X, U, W = collect_data(sample_size, std_u, std_w)
 attack_amplitude = 0.1
 attack_X = 0* np.random.uniform(low=0*-attack_amplitude, high=attack_amplitude, size=(dim_x, sample_size+1))
 attack_U = np.random.uniform(low=-attack_amplitude+10, high=attack_amplitude, size=(dim_u, sample_size))
-attack_U[:, :400] = 0
+attack_idxs = np.random.choice(sample_size, size=900, replace=False)
+attack_U[:, attack_idxs] = 0
 
 
 Xtilde = X + attack_X
@@ -48,6 +49,31 @@ AB = X[:,1:] @ np.linalg.pinv(D)
 ABtilde = Xtilde[:,1:] @ np.linalg.pinv(Dtilde)
 Delta = -B @ attack_U @ np.linalg.pinv(Dtilde)
 
+res_orig = X[:, 1:] - AB @ D
+res_partial =  Xtilde[:, 1:] - AB @ Dtilde
+res_partial2 =  Xtilde[:, 1:] - ABtilde @ Dtilde
+res_partial_norm = np.linalg.norm(res_partial, axis=0, ord=2)
+res_orig_norm = np.linalg.norm(res_orig, axis=0, ord=2)
+res_partial_norm2 = np.linalg.norm(res_partial2, axis=0, ord=2)
+
+
+L = Dtilde.T @ np.linalg.inv(Dtilde @ Dtilde.T) @ Dtilde
+plt.plot(np.diag(L))
+indicators = np.ones(len(np.diag(L))) *np.max(np.diag(L)) * 0.5
+indicators[attack_idxs] = 0
+plt.plot(indicators)
+plt.show()
+import pdb
+pdb.set_trace()
+print(f'{res_partial_norm.sum()} vs {res_partial_norm2.sum()} - {res_orig_norm.sum()}')
+
+plt.plot(res_orig_norm, label='orig')
+plt.plot(res_partial_norm, label='Tilde with true AB')
+plt.plot(res_partial_norm2, label='Poisoned')
+plt.legend()
+plt.show()
+
+exit(-1)
 S = np.random.choice(sample_size, size= sample_size//3)
 
 data_full = np.vstack([Xtilde[:,:-1], Utilde])
