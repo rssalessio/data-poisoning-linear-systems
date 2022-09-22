@@ -33,9 +33,9 @@ sample_size = 1000
 
 X, U, W = collect_data(sample_size, std_u, std_w)
 
-attack_amplitude = 0.1
+attack_amplitude = 1
 attack_X = 0*np.random.uniform(low=-attack_amplitude, high=attack_amplitude, size=(dim_x, sample_size+1))
-attack_U = np.random.uniform(low=-attack_amplitude, high=attack_amplitude, size=(dim_u, sample_size))
+attack_U = np.random.uniform(low=0*-attack_amplitude, high=attack_amplitude, size=(dim_u, sample_size))
 
 
 
@@ -49,8 +49,11 @@ AB = X[:,1:] @ np.linalg.pinv(D)
 ABtilde = Xtilde[:,1:] @ np.linalg.pinv(Dtilde)
 Delta = -B @ attack_U @ np.linalg.pinv(Dtilde)
 
-res = attack_X[:,1:] - ABtilde @ np.vstack([attack_X[:, :-1], attack_U])
-print(res)
+Wtilde = W + np.hstack((np.eye(dim_x), -A, -B)) @ np.vstack([attack_X[:, 1:], attack_X[:, :-1], attack_U])
+
+print(ABtilde - np.hstack((A,B)))
+print(Wtilde @ np.linalg.pinv(Dtilde))
+print(Delta)
 exit(-1)
 
 null_basis = null_space(Dtilde)
