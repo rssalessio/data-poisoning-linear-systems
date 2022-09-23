@@ -1,3 +1,4 @@
+from random import sample
 import numpy as np
 import scipy.signal as scipysig
 from typing import Tuple
@@ -48,6 +49,16 @@ Dtilde = np.vstack([Xtilde[:,:-1], Utilde])
 AB = X[:,1:] @ np.linalg.pinv(D)
 ABtilde = Xtilde[:,1:] @ np.linalg.pinv(Dtilde)
 Delta = -B @ attack_U @ np.linalg.pinv(Dtilde)
+
+
+resid =   W @ (np.eye(sample_size) - np.linalg.pinv(D) @ D)
+eigs = np.abs(np.linalg.eigvals(np.linalg.pinv(D) @ D))
+print(np.sort(eigs)[::-1][:20])
+plt.plot(eigs)
+plt.show()
+plt.plot(resid[0,:])
+plt.plot(W[0,:])
+plt.show()
 
 Wtilde = W + np.hstack((np.eye(dim_x), -A, -B)) @ np.vstack([attack_X[:, 1:], attack_X[:, :-1], attack_U])
 
