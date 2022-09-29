@@ -36,7 +36,7 @@ X, U, W = collect_data(sample_size, std_u, std_w)
 attack_amplitude = 0.1
 attack_X = 0* np.random.uniform(low=0*-attack_amplitude, high=attack_amplitude, size=(dim_x, sample_size+1))
 attack_U = np.random.uniform(low=-attack_amplitude+10, high=attack_amplitude, size=(dim_u, sample_size))
-attack_idxs = np.random.choice(sample_size, size=900, replace=False)
+attack_idxs = np.random.choice(sample_size, size=400, replace=False)
 attack_U[:, attack_idxs] = 0
 
 
@@ -55,23 +55,25 @@ Delta = -B @ attack_U @ np.linalg.pinv(Dtilde)
 Dtilde = torch.tensor(Dtilde, requires_grad=False)
 Xtilde = torch.tensor(Xtilde, requires_grad=False)
 
-iterations = [100, 500, 1000, 2000]
+iterations = [5,10,15,20,30,50,100,150,200]
 
 
 for num_iterations in iterations:
-    eta = 5e-2
+    eta = 200
     w = torch.tensor(np.ones(sample_size)/sample_size, requires_grad=True)
     optim = torch.optim.Adam([w], lr=1e-2)
     for iteration in tqdm(range(num_iterations)):
         W = torch.diag(w)
         theta_w = torch.linalg.inv(Dtilde @ W @ Dtilde.T) @ Dtilde @ W @ Xtilde[:, 1:].T
-        loss = torch.dot(w, torch.linalg.norm(Xtilde[:, 1:] - theta_w.T @ Dtilde, dim=0, ord=2))
+        loss = torch.pow(Xtilde[:, 1:] - theta_w.T @ Dtilde,2).mean()# torch.dot(w, torch.linalg.norm(Xtilde[:, 1:] - theta_w.T @ Dtilde, dim=0, ord=2))
         optim.zero_grad()
         loss.backward()
         with torch.no_grad():
-            w *= torch.exp(-(eta / (iteration + 1)**0.5) * w.grad)
+            w *= torch.nan_to_num(torch.exp(-(eta / (iteration + 1)**0.9) * w.grad))
             w /= w.sum()
             #eta *= 0.99
+
+    print(f' {w.max()} - {w.min()} - {w.mean()}')
     indicators = np.zeros(sample_size)
     indicators[attack_idxs] = 1
 

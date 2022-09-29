@@ -52,7 +52,7 @@ std_w = 1e-1
 std_u = 1
 samples = [30, 100, 1000]
 
-fig, ax = plt.subplots(1, 3, figsize=(12,6))
+fig, ax = plt.subplots(1, 3, figsize=(12,5))
 #fig.suptitle("Identification of $(a,b)$ - Input poisoning", fontsize=TITLE_SIZE)
 
 for id, sample_size in enumerate(samples):
@@ -101,8 +101,8 @@ for id, sample_size in enumerate(samples):
     std_sq_dev_orig = residuals_orig / (sample_size - 2)
     std_sq_dev_pois = residuals_pois / (sample_size - 2)
 
-    cov_pois = 3*std_sq_dev_pois * data_pois
-    cov_orig = 3*std_sq_dev_orig * data_orig
+    cov_pois = 5.99*std_sq_dev_pois * data_pois
+    cov_orig = 5.99*std_sq_dev_orig * data_orig
 
     eigenvalues_pois, eigenvectors_pois = np.linalg.eig(cov_pois)
     eigenvalues_orig, eigenvectors_orig = np.linalg.eig(cov_orig)
