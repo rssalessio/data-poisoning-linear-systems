@@ -1,11 +1,6 @@
-from abc import ABC
 import numpy as np
-import scipy.signal as scipysig
 from typing import Tuple
-from pyzonotope import MatrixZonotope, Zonotope, concatenate_zonotope
-from pydatadrivenreachability import compute_LTI_matrix_zonotope
 import scipy.stats as scipystats
-from matplotlib.collections import PatchCollection
 from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
 from constants import *
@@ -56,7 +51,6 @@ fig, ax = plt.subplots(1, 3, figsize=(12,5))
 #fig.suptitle("Identification of $(a,b)$ - Input poisoning", fontsize=TITLE_SIZE)
 
 for id, sample_size in enumerate(samples):
-    W = Zonotope([0], [[std_w]])
     X, U = collect_data(sample_size, std_u, std_w)
 
     AttackU = std_u * np.random.normal(size=U.shape)

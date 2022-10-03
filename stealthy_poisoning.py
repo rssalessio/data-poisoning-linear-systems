@@ -49,17 +49,29 @@ def correlate(x: np.ndarray, num_lags: int):
             R[m] += x[:,i:i+1] @ x[:, i-m:i-m+1].T
         #R[m] /= (T-m)
 
-    return R/T
+    return R/ T
 num_lags = T-dim_x-dim_u
 R = correlate(true_residuals,num_lags)
 Z = 0
 Z2 = np.zeros(num_lags)
 Z3 = np.zeros(num_lags)
+
 InvCovEst = np.linalg.inv(R[0])
 for i in range(num_lags):
     Z += T*np.trace(R[i].T @ InvCovEst @ R[i] @ InvCovEst)
     Z2[i] =np.sqrt(T)* R[i,0,0] / R[0,0,0]
     Z3[i] = np.sqrt(T)*np.trace(R[i] @ InvCovEst)
+
+S0 = np.linalg.inv(np.kron(R[0],R[0]))
+R0inv = InvCovEst
+
+estim = lambda i: T * R[i].flatten() @ S0 @ R[i].flatten()
+errors = np.array([(R0inv @ R[x]).flatten().sum() * np.sqrt(T) for x in range(30)])
+from scipy.stats import chi2, norm
+alpha = 0.05
+df =  dim_x**2
+cr1=chi2.ppf(q=1-alpha,df=df)
+cr0=chi2.ppf(q=alpha,df=df)
 
 import pdb
 pdb.set_trace()
@@ -68,6 +80,7 @@ Z3 = Z3[1:]
 
 print(np.sum(Z2 > 1.96)/num_lags)
 print(np.sum(Z3 > 1.96)/num_lags)
+
 # import pdb
 # pdb.set_trace()
 # import matplotlib.pyplot as plt
@@ -79,11 +92,7 @@ print(np.sum(Z3 > 1.96)/num_lags)
 print(Z)
 print(np.sqrt(T)*Z2.sum())
 print(np.sqrt(T)*Z3.sum())
-from scipy.stats import chi2
-alpha = 0.05
-df = (dim_x ** 2) * (T - dim_x-dim_u)
-cr1=chi2.ppf(q=1-alpha,df=df)
-cr0=chi2.ppf(q=alpha,df=df)
+
 print(f'{cr0}-{cr1}')
 
 # plt.plot(true_residuals[0,:])
