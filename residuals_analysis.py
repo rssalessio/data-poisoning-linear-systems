@@ -42,44 +42,54 @@ std_w = 1e-1
 std_u = 1
 
 
+
+
+NUM_SIMS = 2000
+
+# def compute_Z(alpha, Z):
+#     hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=Z)
+#     stats.norm.pdf(alpha)
 val_true = []
 val_poisoned = []
 
-def compute_Z(alpha, Z):
-    hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=Z)
-    stats.norm.pdf(alpha)
+amplitudes = np.geomspace(0.05,.5, 20)
+val_true = np.zeros((NUM_SIMS, len(amplitudes)))
+val_poisoned = np.zeros((NUM_SIMS, len(amplitudes)))
 
-
-for i in range(100):
-
+for i in range(NUM_SIMS):
     X, U, W = collect_data(T, std_u, std_w, sys)
     Xp, Xm = X[:, 1:], X[:, :-1]
-
-    attack_amplitude = 0.01
-    DeltaX = np.random.uniform(low=-attack_amplitude, high=attack_amplitude, size=(dim_x, T+1))
-    DeltaU = np.random.uniform(low=-attack_amplitude, high=attack_amplitude, size=(dim_u, T))
-
-
-    tildeXm = Xm + DeltaX[:, :-1]
-    tildeXp = Xp + DeltaX[:, 1:]
-    tildeU = U + DeltaU
-
     D = np.vstack((Xm, U))
-    Dtilde = np.vstack((tildeXm, tildeU))
     AB = Xp @ np.linalg.pinv(D)
-    ABtilde = tildeXp @ np.linalg.pinv(Dtilde)
-
     true_residuals = Xp - AB @ D 
-    poisoned_residuals = tildeXp - ABtilde @ Dtilde
-
-
-
     test_variance = np.linalg.norm(true_residuals, 'fro') ** 2
-    test_poisoned_variance = np.linalg.norm(poisoned_residuals, 'fro') ** 2
+    for ampl_idx, amplitude in enumerate(amplitudes):        
+        attack_amplitude = std_w * amplitude
+        DeltaX = np.random.uniform(low=-attack_amplitude, high=attack_amplitude, size=(dim_x, T+1))
+        DeltaU = np.random.uniform(low=-attack_amplitude, high=attack_amplitude, size=(dim_u, T))
 
-    val_true.append(hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=test_variance))
-    val_poisoned.append(hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=test_poisoned_variance))
-plt.hist(val_true)
+
+        tildeXm = Xm + DeltaX[:, :-1]
+        tildeXp = Xp + DeltaX[:, 1:]
+        tildeU = U + DeltaU
+
+        
+        Dtilde = np.vstack((tildeXm, tildeU))
+        
+        ABtilde = tildeXp @ np.linalg.pinv(Dtilde)
+
+        
+        poisoned_residuals = tildeXp - ABtilde @ Dtilde        
+        test_poisoned_variance = np.linalg.norm(poisoned_residuals, 'fro') ** 2
+
+        val_true[i, ampl_idx] =hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=test_variance)
+        val_poisoned[i, ampl_idx]=hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=test_poisoned_variance)
+
+values = val_poisoned > 0.95
+mu = values.mean(0)
+std = values.std(0)
+plt.plot(amplitudes, mu)
+plt.fill_between(amplitudes, mu - 1.96 * std / np.sqrt(NUM_SIMS), mu + 1.96 * std / np.sqrt(NUM_SIMS),alpha=0.3)
+#plt.xscale('log')
+plt.grid()
 plt.show()
-import pdb
-pdb.set_trace()
