@@ -8,6 +8,7 @@ import scipy.stats as stats
 import dccp
 from scipy.stats import chi2, norm
 from momentchi2 import hbe
+from utils import pvalue_residuals_variance_test, pvalue_whiteness_test
 np.set_printoptions(formatter={'float_kind':"{:.4f}".format})
 
 dt = 0.05
@@ -15,7 +16,7 @@ num = [0.28261, 0.50666]
 den = [1, -1.41833, 1.58939, -1.31608, 0.88642]
 sys = scipysig.TransferFunction(num, den, dt=dt).to_ss()
 dim_x, dim_u = sys.B.shape
-T = 2000
+T = 200
 
 def collect_data(steps: int, std_u: float, std_w: float, sys: scipysig.StateSpace) -> Tuple[np.ndarray, np.ndarray]:
     dim_x, dim_u = sys.B.shape
@@ -38,30 +39,28 @@ def correlate(x: np.ndarray, num_lags: int):
     for m in range(num_lags):
         for i in range(T-m):
             R[m] += x[:,i:i+1] @ x[:, i+m:i+m+1].T
-
-    return R/ T
+    return R/T
 
 def whiteness_test(residuals: np.ndarray, num_lags: int):
-    num_lags = T-dim_x-dim_u
-    R = correlate(residuals, num_lags)
-    df = 20 * (dim_x ** 2)
+    R = correlate(residuals, T-dim_x-dim_u)
+    df = num_lags*(dim_x**2)
     R0Inv = np.linalg.inv(R[0])
-    err = np.array([np.sqrt(T) * np.trace(R0Inv @ R[x]) for x in range(1, 20)])# <= norm.ppf(0.95, scale=dim_x)
-    err2 = np.array([T* np.trace(R[x].T @ R0Inv @ R[x] @ R0Inv) for x in range(1, 20)])# <= chi2.ppf(q=0.95, df=dim_x**2)
-    err3 = np.array([T* np.trace(R0Inv @ R[x] @ (R0Inv @ R[x]).T) for x in range(1, 20)])
-    err4 = np.array([T* np.trace(R0Inv @ R[x] @ R0Inv @ R[x]) for x in range(1, 20)])
+    err = np.array([np.sqrt(T) * np.trace(R0Inv @ R[x]) for x in range(1, num_lags+1)])# <= norm.ppf(0.95, scale=dim_x)
+    # err2 = np.array([T* np.trace(R[x].T @ R0Inv @ R[x] @ R0Inv) for x in range(1, 20)])# <= chi2.ppf(q=0.95, df=dim_x**2)
+    # err3 = np.array([T* np.trace(R0Inv @ R[x] @ (R0Inv @ R[x]).T) for x in range(1, 20)])
+    # err4 = np.array([T* np.trace(R0Inv @ R[x] @ R0Inv @ R[x]) for x in range(1, 20)])
 
-    print(np.all(err))
-    
-    statistics = T * np.sum([np.trace(R[x].T @ R0Inv @ R[x] @ R0Inv) for x in range(1, 20)])
+    # print(np.all(err))
+    stats = [np.trace(R[x].T @ R0Inv @ R[x] @ R0Inv) for x in range(1, num_lags+1)]
+    statistics = T*np.sum(stats)
     
     q = chi2.cdf(statistics, df)
-    return q
+    return q, statistics, df, err
 
 std_w = 1e-1
 std_u = 1
 
-NUM_SIMS = 2
+NUM_SIMS = 2000
 deltas = [0.05]#np.geomspace(1e-4, 1e-1, 10)
 
 results_optimal = np.zeros((NUM_SIMS,len(deltas)))
@@ -74,6 +73,8 @@ test_poisoned_gaussian = np.zeros((NUM_SIMS,len(deltas)))
 test_whiteness_gaussian = np.zeros((NUM_SIMS,len(deltas)))
 test_whiteness_optimal = np.zeros((NUM_SIMS,len(deltas)))
 
+
+tests = []
 for sim_idx in range(NUM_SIMS):
     X, U, W = collect_data(T, std_u, std_w, sys)
     Xp, Xm = X[:, 1:], X[:, :-1]
@@ -82,10 +83,9 @@ for sim_idx in range(NUM_SIMS):
 
     true_residuals = Xp - AB @ D 
     test_variance = np.linalg.norm(true_residuals, 'fro')
-    print(f'{np.linalg.norm(W-true_residuals)}')
-    import pdb
-    pdb.set_trace()
-    whiteness_test(true_residuals,20)
+    #print(f'{np.linalg.norm(W-true_residuals)}')
+
+    #whiteness_test(true_residuals,20)
 
     def evaluate_attack(DeltaX, DeltaU):
         tildeXm = Xm + DeltaX[:, :-1]
@@ -102,8 +102,19 @@ for sim_idx in range(NUM_SIMS):
 
 
         _test_pois=hbe(coeff=[std_w**2 ] * dim_x* (T-dim_x-dim_u), x=_pois_res** 2)
+  
 
         return _pois_res, _abdiff, _test_pois, _pos_res
+
+    R = correlate(true_residuals, T-dim_x-dim_u)
+    #pval = pvalue_residuals_variance_test(true_residuals, dim_u, [std_w**2]*dim_x)
+    pval2 = pvalue_whiteness_test(R, 10, T)
+    #pval3, statistics, df, err = whiteness_test(true_residuals, 15)
+
+    tests.append(pval2)
+    print(f'{pval2} ')
+
+    continue
 
     for idx_delta, delta in enumerate(deltas):
         print(f'Iteration {sim_idx}-{idx_delta}')
@@ -154,8 +165,11 @@ for sim_idx in range(NUM_SIMS):
         print((std_w**2)*np.eye(dim_x) + sys.A @ ((stdX**2)*np.eye(dim_x)) @ sys.A.T + (stdX**2)*np.eye(dim_x)+ sys.B @ ((stdU**2) *np.eye(dim_u)) @ sys.B.T)
         test_whiteness_gaussian[sim_idx, idx_delta] = whiteness_test(_pos_res, 20)
 
-
-
+# tests = np.array(tests)
+# P = norm.cdf(tests, scale=np.sqrt(dim_x))
+plt.hist(tests, density=True)
+plt.show()
+exit(-1)
 
 fig, ax1 = plt.subplots()
 
