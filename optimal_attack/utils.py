@@ -54,7 +54,7 @@ def whiteness_test(residuals: np.ndarray, num_lags: int) -> float:
     return statistics
 
 
-def pvalue_whiteness_test(R: np.ndarray, num_lags: int, T: int) -> TestStatistics:
+def pvalue_whiteness_test(R: np.ndarray, num_lags: int, T: int) -> Tuple[float,float]:
     R_lags, dim_x, _ = R.shape
     assert R_lags > num_lags, f"R has been computed only for {R_lags} lags, not for {num_lags} lags."
     df = num_lags * (dim_x ** 2)

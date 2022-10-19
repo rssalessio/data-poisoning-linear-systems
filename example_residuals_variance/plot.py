@@ -7,7 +7,7 @@ from typing import List
 from utils import ResultsData, confidence_interval_signal
 
 TITLE_SIZE = 20
-LEGEND_SIZE = 18
+LEGEND_SIZE = 20
 TICK_SIZE = 16
 AXIS_TITLE = TITLE_SIZE
 AXIS_LABEL = TITLE_SIZE
@@ -75,6 +75,7 @@ ax[1].grid()
 ax[1].set_xlabel(r'$\delta$')
 ax[1].set_ylabel(r'$P_0(X\leq  \|\tilde R\|_{\textnormal{F}}^2 )$')
 ax[1].set_xscale('log')
-ax[0].legend()
+plt.legend(bbox_to_anchor=(0.725, 0.875), loc="lower right",
+                bbox_transform=fig.transFigure, ncol=2, frameon=False)
 
 plt.savefig('example_residuals_variance.pdf',bbox_inches='tight')

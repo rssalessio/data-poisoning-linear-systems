@@ -2,7 +2,6 @@ import numpy as np
 import scipy.signal as scipysig
 from typing import Tuple, List, NamedTuple
 from momentchi2 import hbe
-from scipy.stats import t
 
 class TestStatistics(NamedTuple):
     statistics: float
@@ -41,10 +40,9 @@ def residuals_variance_test(residuals: np.ndarray, dim_u: int, sigma_eigs: List[
     p = hbe(coeff=eigs, x=fro_norm_squared)
     return TestStatistics(fro_norm_squared, p, 1-p)
 
-def confidence_interval_signal(signal: np.ndarray, n_sims: int, c: float = 0.95) -> Tuple[np.ndarray,np.ndarray, np.ndarray]:
+def confidence_interval_signal(signal: np.ndarray, n_sims: int, c: float = 1.96) -> Tuple[np.ndarray,np.ndarray, np.ndarray]:
     mu = signal.mean(0)
     std = signal.std(0)
-    c = t.ppf(c + (1-c)/2, df=n_sims-1)
     return mu, mu - c * std /np.sqrt(n_sims), mu + c * std / np.sqrt(n_sims)
 
 class ResultsData(object):

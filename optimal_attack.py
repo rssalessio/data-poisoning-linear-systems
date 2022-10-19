@@ -60,7 +60,7 @@ def whiteness_test(residuals: np.ndarray, num_lags: int):
 std_w = 1e-1
 std_u = 1
 
-NUM_SIMS = 2000
+NUM_SIMS = 500
 deltas = [0.05]#np.geomspace(1e-4, 1e-1, 10)
 
 results_optimal = np.zeros((NUM_SIMS,len(deltas)))
@@ -111,7 +111,7 @@ for sim_idx in range(NUM_SIMS):
     pval2 = pvalue_whiteness_test(R, 10, T)
     #pval3, statistics, df, err = whiteness_test(true_residuals, 15)
 
-    tests.append(pval2)
+    tests.append(pval2.pvalue)
     print(f'{pval2} ')
 
     continue
