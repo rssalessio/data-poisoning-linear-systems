@@ -56,3 +56,19 @@ class ResultsData(object):
         self.poisoned_delta_ab_norm_gaussian_atk = np.zeros(n)
         self.poisoned_residuals_variance_optimal_atk = np.zeros(n)
         self.poisoned_residuals_variance_gaussian_atk = np.zeros(n)
+
+class ResultsSimulation(object):
+    def __init__(self, X: np.ndarray, U: np.ndarray, W: np.ndarray, Sigma: np.ndarray, TrueAB: np.ndarray, deltas: np.ndarray, n_deltas: int):
+        self.TrueAB = TrueAB
+        self.X = X
+        self.U = U
+        self.W = W
+        self.Sigma = Sigma
+
+        self.opt_DeltaX = np.zeros((n_deltas,) + X.shape)
+        self.gauss_DeltaX = np.zeros((n_deltas,) + X.shape)
+        self.unif_DeltaX = np.zeros((n_deltas,) + X.shape)
+        self.opt_DeltaU = np.zeros((n_deltas,) + U.shape)
+        self.gauss_DeltaU = np.zeros((n_deltas,) + U.shape)
+        self.unif_DeltaU = np.zeros((n_deltas,) + U.shape)
+        self.deltas = deltas
