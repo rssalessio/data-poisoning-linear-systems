@@ -10,10 +10,10 @@ from basic_units import radians, degrees, cos
 from utils import ResultsSimulation, residuals_variance_test, confidence_interval_signal
 TITLE_SIZE = 20
 LEGEND_SIZE = 20
-TICK_SIZE = 16
-AXIS_TITLE = TITLE_SIZE
+TICK_SIZE = 14
+AXIS_TITLE = TITLE_SIZE-4
 AXIS_LABEL = TITLE_SIZE-4
-FONT_SIZE = TITLE_SIZE
+FONT_SIZE = TITLE_SIZE-4
 
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{{amsmath}}'
@@ -108,14 +108,14 @@ impact_unif_mean, impact_unif_lower, impact_unif_upper = confidence_interval_sig
 
 ax[0].plot(deltas, impact_optimal_mean, label='Optimized attack')
 ax[0].fill_between(deltas, impact_optimal_lower, impact_optimal_upper, alpha=0.3)
-ax[0].plot(deltas, impact_gaussian_mean, label='Gaussian attack')
+ax[0].plot(deltas, impact_gaussian_mean, '--', label='Gaussian attack')
 ax[0].fill_between(deltas, impact_gaussian_lower, impact_gaussian_upper, alpha=0.3)
-ax[0].plot(deltas, impact_unif_mean, label='Uniform attack')
+ax[0].plot(deltas, impact_unif_mean, ':', label='Uniform attack')
 ax[0].fill_between(deltas, impact_unif_lower, impact_unif_upper, alpha=0.3)
 ax[0].grid()
 ax[0].set_xscale('log')
 ax[0].set_xlabel(r'$\delta$')
-ax[0].set_ylabel(r"$\|\begin{bmatrix} \Delta A & \Delta B \end{bmatrix}\|_2$")
+ax[0].set_ylabel(r"$\mathrm{E}\|\begin{bmatrix} \Delta A & \Delta B \end{bmatrix}\|_2$")
 
 resvar_optimal_mean, resvar_optimal_lower, resvar_optimal_upper = confidence_interval_signal(opt_poisoned_delta_test, N_SIMS)
 resvar_gaussian_mean, resvar_gaussian_lower, resvar_gaussian_upper = confidence_interval_signal(gauss_poisoned_delta_test, N_SIMS)
@@ -123,9 +123,9 @@ resvar_unif_mean, resvar_unif_lower, resvar_unif_upper = confidence_interval_sig
 
 ax[1].plot(deltas, resvar_optimal_mean, label='Optimized attack')
 ax[1].fill_between(deltas, resvar_optimal_lower, resvar_optimal_upper, alpha=0.3)
-ax[1].plot(deltas, resvar_gaussian_mean, label='Gaussian attack')
+ax[1].plot(deltas, resvar_gaussian_mean, '--', label='Gaussian attack')
 ax[1].fill_between(deltas, resvar_gaussian_lower, resvar_gaussian_upper, alpha=0.3)
-ax[1].plot(deltas, resvar_unif_mean, label='Uniform attack')
+ax[1].plot(deltas, resvar_unif_mean, ':', label='Uniform attack')
 ax[1].fill_between(deltas, resvar_unif_lower, resvar_unif_upper, alpha=0.3)
 ax[1].grid()
 ax[1].set_xlabel(r'$\delta$')
@@ -137,19 +137,20 @@ dot_optimal_mean, dot_optimal_lower, dot_optimal_upper = confidence_interval_sig
 dot_gaussian_mean, dot_gaussian_lower, dot_gaussian_upper = confidence_interval_signal(gauss_poisoned_delta_dot, N_SIMS)
 dot_unif_mean, dot_unif_lower, dot_unif_upper = confidence_interval_signal(unif_poisoned_delta_dot, N_SIMS)
 
-ax[2].plot(deltas, dot_optimal_mean, label='Optimized attack', yunits=radians)
-# ax[2].fill_between(deltas, dot_optimal_lower, dot_optimal_upper, alpha=0.3, yunits=radians)
-ax[2].plot(deltas, dot_gaussian_mean, label='Gaussian attack', yunits=radians)
-# ax[2].fill_between(deltas, dot_gaussian_lower, dot_gaussian_upper, alpha=0.3, yunits=radians)
-ax[2].plot(deltas, dot_unif_mean, label='Uniform attack', yunits=radians)
-# ax[2].fill_between(deltas, dot_unif_lower, dot_unif_upper, alpha=0.3, yunits=radians)
+ax[2].plot(deltas, dot_optimal_mean, label='Optimized attack')
+ax[2].fill_between(deltas, dot_optimal_lower, dot_optimal_upper, alpha=0.3)
+ax[2].plot(deltas, dot_gaussian_mean, '--', label='Gaussian attack', yunits=radians)
+ax[2].fill_between(deltas, dot_gaussian_lower, dot_gaussian_upper, alpha=0.3)
+ax[2].plot(deltas, dot_unif_mean, ':', label='Uniform attack', yunits=radians)
+ax[2].fill_between(deltas, dot_unif_lower, dot_unif_upper, alpha=0.3)
 ax[2].grid()
 ax[2].set_xlabel(r'$\delta$')
-ax[2].set_ylabel(r'$\angle (\theta_{\textnormal{LS}},  \Delta \tilde{\theta})$ [rad]')
+ax[2].set_ylabel(r'$\angle (\theta_{\textrm{LS}},  \Delta \tilde{\theta}_{\textrm{LS}})$ [rad]')
 ax[2].set_xscale('log')
+ax[2].set_yticklabels([r"$." + str(round(r/np.pi,1))[-1]+ r"\pi$" for r in ax[2].get_yticks()])
+
 
 plt.legend(bbox_to_anchor=(0.785, 0.875), loc="lower right",
                 bbox_transform=fig.transFigure, ncol=3, frameon=False)
-
-plt.savefig('new.pdf',bbox_inches='tight')
 #plt.show()
+plt.savefig('example_residuals_variance.pdf',bbox_inches='tight')

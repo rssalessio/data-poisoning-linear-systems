@@ -35,6 +35,7 @@ def compute_attack(
         lagrange_regularizer: float = 1e-2,
         penalty_regularizer: float = 1e-1,
         rel_tol: float = 1e-4,
+        beta: float = 1.01,
         regularizers: List[ConstraintModule] = [],
         verbose: bool = True,
         trial: optuna.trial.Trial = None):
@@ -52,6 +53,7 @@ def compute_attack(
 
     # Lagrangian
     lmbd = torch.tensor(lagrange_regularizer * np.ones(s+1), requires_grad=False)
+    rho = penalty_regularizer
 
     # Attack information
     info = AttackOptimizationInfo(unpoisoned_data)
@@ -75,7 +77,7 @@ def compute_attack(
         R = torch_correlate(residuals_poisoned, s + 1)
         R0Inv = torch.linalg.inv(R[0])
         attack_data = AttackData(unpoisoned_data, DeltaU, DeltaX, D_poisoned, AB_poisoned, residuals_poisoned, DeltaAB, R)
-        main_objective = -torch.norm(DeltaAB, p=2)
+        main_objective = torch.norm(DeltaAB, p=2)
 
         # Residuals norm constraint
         c_r = torch.linalg.norm(residuals_poisoned, 'fro') ** 2 / norm_unpoisoned_residuals
@@ -93,19 +95,20 @@ def compute_attack(
             torch.abs(1-c_c) - delta1)
             ).flatten()
         clamped_constraints = torch.clamp(stacked_constraints, min=0)
-        loss = main_objective + torch.dot(lmbd, clamped_constraints)
-        loss = loss + (penalty_regularizer/2) * torch.square(torch.linalg.norm(clamped_constraints, 2))
+        loss = -main_objective + torch.dot(lmbd, clamped_constraints) + (rho/2) * torch.square(torch.linalg.norm(clamped_constraints, 2))
 
         optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_([DeltaX, DeltaU], max_norm=max_grad_norm)
+        torch.nn.utils.clip_grad.clip_grad_norm_([DeltaX, DeltaU], max_norm=1)
         optimizer.step()
 
 
 
         with torch.no_grad():
-            lmbd = lmbd + learning_rate_regularizer * clamped_constraints
-            print(f'Loss: {loss.item()}  - norm ABDelta : {-main_objective.item()} - constraints: {c_r.item()} - {c_c.detach().numpy().flatten()} - lmbd {lmbd.detach().numpy()}')
+            if clamped_constraints.max().item() > max(delta0,delta1)//2:
+                rho = beta * rho
+            lmbd = lmbd + rho * clamped_constraints
+            print(f'Loss: {loss.item()}  - norm ABDelta : {main_objective.item()} - constraints: {c_r.item()} - {c_c.detach().numpy().flatten()} - lmbd {lmbd.detach().numpy()} - rho { rho}')
 
 
         # info.loss.append(loss.item())

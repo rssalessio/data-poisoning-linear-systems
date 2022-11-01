@@ -4,7 +4,7 @@ from typing import Tuple, NamedTuple
 import cvxpy as cp
 import multiprocessing as mp
 import dccp
-from .utils import collect_data, ResultsSimulation
+from utils import collect_data, ResultsSimulation
 
 
 np.set_printoptions(formatter={'float_kind':"{:.4f}".format})
@@ -15,12 +15,19 @@ den = [1, -1.41833, 1.58939, -1.31608, 0.88642]
 sys = scipysig.TransferFunction(num, den, dt=dt).to_ss()
 trueAB = np.hstack((sys.A, sys.B))
 dim_x, dim_u = sys.B.shape
-T = 200
-NUM_SIMS = 12
-NUM_CPUS = 4
+T = 100
+NUM_SIMS = 100
+NUM_RANDOM_POINTS =  100
+NUM_CPUS = 12
 
 std_w = 1e-1
 std_u = 1
+
+def evaluate_attack(true_residuals: np.ndarray, AB: np.ndarray, DeltaX: np.ndarray, DeltaU: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    objective = np.linalg.norm(DeltaX[:, 1:] - AB @ np.vstack((DeltaX[:, :-1], DeltaU)), 'fro')
+    objective += 2*np.trace(true_residuals @ (DeltaX[:, 1:] - AB @ np.vstack((DeltaX[:, :-1], DeltaU))).T)
+    return objective
+
 
 
 deltas = np.geomspace(1e-4, 1e-1, 50)
@@ -56,13 +63,30 @@ def run_simulation(id_sim: int):
         res.opt_DeltaU[idx_delta] = DeltaU.value
 
         # Gaussian attack
-        res.gauss_DeltaX[idx_delta] = np.random.normal(size=X.shape) * (delta * np.linalg.norm(X, 'fro')) / np.sqrt(T* dim_x)
-        res.gauss_DeltaU[idx_delta] = np.random.normal(size=U.shape) * (delta * np.linalg.norm(U, 'fro')) / np.sqrt(T* dim_u)
+        gauss_val = 0
+        unif_val = 0
+        for idx_sample in range(NUM_RANDOM_POINTS):
+            DeltaX = np.random.normal(size=X.shape) * (delta * np.linalg.norm(X, 'fro')) / np.sqrt((T+1)* dim_x)
+            DeltaU = np.random.normal(size=U.shape) * (delta * np.linalg.norm(U, 'fro')) / np.sqrt(T* dim_u)
+            val = evaluate_attack(true_residuals, AB, DeltaX, DeltaU)
 
-        # Uniform attack
-        DeltaX, DeltaU = np.random.uniform(low=-1, high=-1, size=X.shape), np.random.uniform(low=-1, high=-1, size=U.shape)
-        res.unif_DeltaX[idx_delta] = DeltaX * (delta * np.linalg.norm(X, 'fro')) / np.linalg.norm(DeltaX, 'fro')
-        res.unif_DeltaU[idx_delta] = DeltaU * (delta * np.linalg.norm(U, 'fro')) / np.linalg.norm(DeltaU, 'fro')
+            if val > gauss_val:
+                res.gauss_DeltaX[idx_delta] = DeltaX
+                res.gauss_DeltaU[idx_delta] = DeltaU
+                gauss_val = val
+
+            # Uniform attack
+            alpha = 0.5 * (12 ** 0.5)
+            DeltaX, DeltaU = np.random.uniform(low=-alpha , high=alpha, size=X.shape), np.random.uniform(low=-alpha, high=alpha, size=U.shape)
+            DeltaX = DeltaX * (delta * np.linalg.norm(X, 'fro')) / np.linalg.norm(DeltaX, 'fro')
+            DeltaU = DeltaU * (delta * np.linalg.norm(U, 'fro')) / np.linalg.norm(DeltaU, 'fro')
+
+            val = evaluate_attack(true_residuals, AB, DeltaX, DeltaU)
+
+            if val > unif_val:
+                res.unif_DeltaX[idx_delta] = DeltaX
+                res.unif_DeltaU[idx_delta] = DeltaU
+                unif_val = val
 
     return res
 

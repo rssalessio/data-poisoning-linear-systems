@@ -7,9 +7,9 @@ from constants import *
 np.random.seed(200)
 
 
-TITLE_SIZE = 30
-LEGEND_SIZE = 20
-TICK_SIZE = 17
+TITLE_SIZE = 28
+LEGEND_SIZE = 26
+TICK_SIZE = 20
 AXIS_TITLE = TITLE_SIZE
 AXIS_LABEL = TITLE_SIZE
 FONT_SIZE = TITLE_SIZE
@@ -47,7 +47,7 @@ std_w = 1e-1
 std_u = 1
 samples = [30, 100, 1000]
 
-fig, ax = plt.subplots(1, 3, figsize=(12,5))
+fig, ax = plt.subplots(1, 3, figsize=(12,4))
 #fig.suptitle("Identification of $(a,b)$ - Input poisoning", fontsize=TITLE_SIZE)
 
 for id, sample_size in enumerate(samples):
@@ -103,14 +103,14 @@ for id, sample_size in enumerate(samples):
 
     theta = np.linspace(0, 2*np.pi, 1000)
     ellipsis = AB.T+ (np.sqrt(eigenvalues_orig[None,:]) * eigenvectors_orig) @ [np.sin(theta), np.cos(theta)]
-    ax[id].plot(ellipsis[0,:], ellipsis[1,:], label='Original data')
+    ax[id].plot(ellipsis[0,:], ellipsis[1,:], label='Original')
 
     ax[id].fill(ellipsis[0,:], ellipsis[1,:], alpha=0.2, facecolor=CB_color_cycle[0],
         edgecolor=CB_color_cycle[0], linewidth=1, zorder=1, hatch="X")
     ax[id].fill_between(ellipsis[0,:], ellipsis[1,:],   hatch='+', zorder=2, facecolor=CB_color_cycle[0], alpha=0.2)
 
     ellipsis = AB_poisoned.T +(np.sqrt(eigenvalues_pois[None,:]) * eigenvectors_pois) @ [np.sin(theta), np.cos(theta)]
-    ax[id].plot( ellipsis[0,:], ellipsis[1,:], label='Poisoned data')
+    ax[id].plot( ellipsis[0,:], ellipsis[1,:], label='Poisoned ')
     ax[id].fill(ellipsis[0,:], ellipsis[1,:], alpha=0.2, facecolor=CB_color_cycle[1],
         edgecolor=CB_color_cycle[1], linewidth=1, zorder=1)
     ax[id].fill_between(ellipsis[0,:], ellipsis[1,:],   hatch='///', zorder=2, facecolor=CB_color_cycle[1], alpha=0.2)
@@ -127,10 +127,12 @@ for id, sample_size in enumerate(samples):
     #     ax[id].get_yaxis().set_ticklabels([])
 
     
-    if id == 0:
-        ax[id].legend(fancybox = True,facecolor="whitesmoke", loc='lower left', handles = [Patch(color=CB_color_cycle[0], label='Original data'), Patch(color=CB_color_cycle[1], label='Poisoned data')] )
+    # if id == 1:
+    #     ax[id].legend(
+    #         fancybox = True,facecolor="whitesmoke", loc='lower left', handles = [Patch(color=CB_color_cycle[0], label='Original'), Patch(color=CB_color_cycle[1], label='Poisoned')] )
 #fig.tight_layout(rect=[0, 0, 1, 0.95])
 
 
-
+plt.legend(bbox_to_anchor=(0.735, 0.95), loc="lower right",
+                bbox_transform=fig.transFigure, ncol=2, frameon=False)
 plt.savefig('input_poisoning.pdf',bbox_inches='tight')
