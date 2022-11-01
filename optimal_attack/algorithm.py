@@ -108,7 +108,7 @@ def compute_attack(
             if clamped_constraints.max().item() > max(delta0,delta1)//2:
                 rho = beta * rho
             lmbd = lmbd + rho * clamped_constraints
-            print(f'Loss: {loss.item()}  - norm ABDelta : {main_objective.item()} - constraints: {c_r.item()} - {c_c.detach().numpy().flatten()} - lmbd {lmbd.detach().numpy()} - rho { rho}')
+            print(f'[{iteration}] Loss: {loss.item()}  - norm ABDelta : {main_objective.item()} - constraints: {c_r.item()} - {c_c.detach().numpy().flatten()} - lmbd {lmbd.detach().numpy()} - rho { rho}')
 
 
         # info.loss.append(loss.item())
@@ -167,7 +167,7 @@ if __name__ == '__main__':
         pvalue_residuals_variance_test(residuals_unpoisoned, dim_u, np.linalg.eigvalsh(SigmaW).tolist())
     )
 
-    DeltaX, DeltaU = compute_attack(unpoisoned_data)
+    DeltaX, DeltaU = compute_attack(unpoisoned_data, max_iterations=1000)
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, dim_x +dim_u)
     for i in range(dim_x):
