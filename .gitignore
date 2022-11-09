@@ -6,3 +6,7 @@ build/
 __pycache__/
 *.log
 *npy
+*.out
+*.pickle
+*.pkl
+*.txt

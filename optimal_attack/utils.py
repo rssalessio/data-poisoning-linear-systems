@@ -4,6 +4,16 @@ import torch
 from scipy.stats import chi2
 from typing import Tuple, List, NamedTuple
 from momentchi2 import hbe
+import jax.numpy as jnp
+import time
+import torch.nn.functional as F
+
+class CollectedData(NamedTuple):
+    X: np.ndarray
+    U: np.ndarray
+    W: np.ndarray
+    std_u: float
+    std_w: float
 
 class TestStatistics(NamedTuple):
     statistics: float
@@ -21,7 +31,7 @@ def collect_data(steps: int, std_u: float, std_w: float, sys: scipysig.StateSpac
         W[:, i] = std_w * np.random.normal(size=(dim_x))
         X[:, i+1] = sys.A @ X[:, i] +  np.squeeze(sys.B * U[:, i]) + W[:, i]
 
-    return X, U, W
+    return CollectedData(X, U, W, std_u, std_w)
 
 def correlate(x: np.ndarray, num_lags: int) -> np.ndarray:
     n, T = x.shape
@@ -31,23 +41,44 @@ def correlate(x: np.ndarray, num_lags: int) -> np.ndarray:
         for i in range(T-m):
             R[m] += x[:,i:i+1] @ x[:, i+m:i+m+1].T
 
+    
     return R/T
+
+def jax_correlate(x: jnp.ndarray, num_lags: int) -> jnp.ndarray:
+    n, T = x.shape
+    R = jnp.zeros((num_lags,n,n))
+
+    for m in range(num_lags):
+        for i in range(T-m):
+            R = R.at[m].set(R[m] + x[:,i:i+1] @ x[:, i+m:i+m+1].T)
+            #R[m] += x[:,i:i+1] @ x[:, i+m:i+m+1].T
+
+    return R/T
+
+
 
 def torch_correlate(x: torch.Tensor, num_lags: int) -> List[torch.Tensor]:
     n, T = x.shape
     R = []
 
+    # start = time.time()
+    # for m in range(num_lags):
+    #     y = 0
+    #     for i in range(T-m):
+    #         y = y + x[:,i:i+1] @ x[:, i+m:i+m+1].T
+    #     R.append(y/T)
+    # end= time.time()-start
+
+    R = []
     for m in range(num_lags):
-        y = 0
-        for i in range(T-m):
-            y = y + x[:,i:i+1] @ x[:, i+m:i+m+1].T
-        R.append(y/T)
+        R.append(F.conv1d(x.unsqueeze(1), x[:, m:].unsqueeze(1))[:,:,0]/T)
+
     return R
 
 def whiteness_test(residuals: np.ndarray, num_lags: int) -> float:
     dim_x, T = residuals.shape
     R = correlate(residuals, num_lags)
-    df = num_lags * (dim_x ** 2)
+    df = (T-dim_x-1) * (dim_x ** 2)
     R0Inv = np.linalg.inv(R[0])
     statistics = T * np.sum([np.trace(R[x].T @ R0Inv @ R[x] @ R0Inv) for x in range(1, num_lags)])
     q = chi2.cdf(statistics, df)
@@ -57,7 +88,7 @@ def whiteness_test(residuals: np.ndarray, num_lags: int) -> float:
 def pvalue_whiteness_test(R: np.ndarray, num_lags: int, T: int) -> Tuple[float,float]:
     R_lags, dim_x, _ = R.shape
     assert R_lags > num_lags, f"R has been computed only for {R_lags} lags, not for {num_lags} lags."
-    df = num_lags * (dim_x ** 2)
+    df = (T-dim_x-1) * (dim_x ** 2)
     R0Inv = np.linalg.inv(R[0])
     statistics = T * np.sum([np.trace(R[x].T @ R0Inv @ R[x] @ R0Inv) for x in range(1, num_lags + 1)])
     p = chi2.cdf(statistics, df)

@@ -26,23 +26,30 @@ def log(epoch: int, info: AttackOptimizationInfo) -> None:
 
 def compute_attack(
         unpoisoned_data: UnpoisonedDataInfo,
-        delta0: float = 0.1,
-        delta1: float = 0.1,
-        max_iterations: int = 1000,
-        learning_rate: float = 1e-3,
+        delta0: float = 1e-1,
+        delta1: float = 1e-1,
+        max_iterations: int = 10000,
+        learning_rate: float = 1e-2,
         learning_rate_regularizer: float = 1e-1,
         max_grad_norm: float = 1e-1,
         lagrange_regularizer: float = 1e-2,
         penalty_regularizer: float = 1e-1,
         rel_tol: float = 1e-4,
-        beta: float = 1.01,
+        beta: float = 1.005,
         regularizers: List[ConstraintModule] = [],
         verbose: bool = True,
         trial: optuna.trial.Trial = None):
     X = torch.tensor(unpoisoned_data.X)
     U = torch.tensor(unpoisoned_data.U)
     AB_unpoisoned = torch.tensor(unpoisoned_data.AB_unpoisoned)
+    A_unpoisoned2 = torch.tensor(X[:, 1:] @ np.linalg.pinv(X[:, :-1]))
     s = unpoisoned_data.num_lags * 2
+
+    U_norm = np.linalg.norm(unpoisoned_data.U, 'fro')
+    X_norm = np.linalg.norm(unpoisoned_data.X, 'fro')
+
+    residuals_unpoisoned_2 = X[:, 1:] - A_unpoisoned2 @ X[:, :-1]
+    Zd = -1 + (np.linalg.norm(residuals_unpoisoned_2,'fro') / (np.linalg.norm(unpoisoned_data.residuals_unpoisoned, 'fro')))**2
 
     # Poisoning signals
     DeltaX = torch.tensor(np.zeros((unpoisoned_data.dim_x, unpoisoned_data.T+1)), requires_grad=True)
@@ -50,18 +57,22 @@ def compute_attack(
 
     # Optimizer
     optimizer = torch.optim.Adam([DeltaX, DeltaU], lr=learning_rate)
+    scheduler = torch.optim.lr_scheduler.MultiplicativeLR(optimizer, lr_lambda=lambda epoch: 0.95, verbose=True)
 
     # Lagrangian
-    lmbd = torch.tensor(lagrange_regularizer * np.ones(s+1), requires_grad=False)
+    lmbd = torch.tensor(lagrange_regularizer * np.ones(s+4), requires_grad=False)
     rho = penalty_regularizer
 
     # Attack information
     info = AttackOptimizationInfo(unpoisoned_data)
-
+    losses = []
     # Other info
     R0inv_unpoisoned = np.linalg.inv(unpoisoned_data.R[0])
     norm_unpoisoned_residuals = np.linalg.norm(unpoisoned_data.residuals_unpoisoned, 'fro') ** 2
     norm_unpoisoned_correlation_terms = [np.linalg.norm(unpoisoned_data.R[idx+1] @ R0inv_unpoisoned, 'fro') ** 2 for idx in range(s)]
+
+
+    clamp_scheduler_value = 0.25
 
     # Attack training loop
     for iteration in range(max_iterations):
@@ -70,18 +81,26 @@ def compute_attack(
         tildeU = U + DeltaU
         D_poisoned = torch.vstack((tildeX[:, :-1], tildeU))
         AB_poisoned = tildeX[:, 1:] @ torch.linalg.pinv(D_poisoned)
+        A_poisoned = tildeX[:, 1:] @ torch.linalg.pinv(tildeX[:, :-1])
 
         residuals_poisoned = tildeX[:, 1:] - AB_poisoned @ D_poisoned
+        residuals_poisoned_2 = tildeX[:, 1:] - A_poisoned @ tildeX[:, :-1]
         DeltaAB = AB_poisoned - AB_unpoisoned
 
+
+        Zdtilde = -1 + (torch.linalg.norm(residuals_poisoned_2,'fro') / (torch.linalg.norm(residuals_poisoned, 'fro')))**2
         R = torch_correlate(residuals_poisoned, s + 1)
         R0Inv = torch.linalg.inv(R[0])
         attack_data = AttackData(unpoisoned_data, DeltaU, DeltaX, D_poisoned, AB_poisoned, residuals_poisoned, DeltaAB, R)
         main_objective = torch.norm(DeltaAB, p=2)
 
+
         # Residuals norm constraint
         c_r = torch.linalg.norm(residuals_poisoned, 'fro') ** 2 / norm_unpoisoned_residuals
+        c_z = Zdtilde/Zd
 
+        c_u = torch.linalg.norm(DeltaU,'fro')/ U_norm
+        c_x = torch.linalg.norm(DeltaX, 'fro')/ X_norm
         c_c = []
 
         # Correlation constraints
@@ -91,7 +110,10 @@ def compute_attack(
         c_c = torch.vstack(c_c)
         # Build augmented lagrangian loss
         stacked_constraints = torch.vstack((
-            torch.abs(1-c_r) - delta0, 
+            torch.abs(1-c_r) - delta0,
+            torch.abs(1-c_z) - delta0**2,
+            c_x - delta0,
+            c_u - delta0,
             torch.abs(1-c_c) - delta1)
             ).flatten()
         clamped_constraints = torch.clamp(stacked_constraints, min=0)
@@ -101,14 +123,23 @@ def compute_attack(
         loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_([DeltaX, DeltaU], max_norm=1)
         optimizer.step()
-
+        losses.append(main_objective.item())
 
 
         with torch.no_grad():
             if clamped_constraints.max().item() > max(delta0,delta1)//2:
-                rho = beta * rho
+                rho = min(1e7, beta * rho)
             lmbd = lmbd + rho * clamped_constraints
-            print(f'[{iteration}] Loss: {loss.item()}  - norm ABDelta : {main_objective.item()} - constraints: {c_r.item()} - {c_c.detach().numpy().flatten()} - lmbd {lmbd.detach().numpy()} - rho { rho}')
+            
+            # if clamped_constraints.mean() > 0:
+            #     clamp_scheduler_value = max(0, clamp_scheduler_value - 1e-2 * clamped_constraints.mean().item())
+
+
+            if clamped_constraints.mean() > 0.05:
+                scheduler.step()
+                
+            if iteration % 300 == 0:
+                print(f'[{iteration}] Loss: {loss.item()}  - norm ABDelta : {main_objective.item()} - {clamped_constraints.detach().numpy().flatten()} - lmbd {lmbd.detach().numpy()} - rho { rho}')
 
 
         # info.loss.append(loss.item())
@@ -134,7 +165,7 @@ def compute_attack(
         #     if np.abs(info.loss[-1] - info.loss[-2]) / np.abs(info.loss[-2]) < rel_tol:
         #         print('Optimization complete')
         #         break
-    return DeltaX.detach().numpy(), DeltaU.detach().numpy()
+    return DeltaX.detach().numpy(), DeltaU.detach().numpy(), losses
 
 if __name__ == '__main__':
     dt = 0.05
@@ -149,6 +180,7 @@ if __name__ == '__main__':
     STD_U = 1
     STD_W = 0.1
     X, U, W = collect_data(T, STD_U, STD_W, sys)
+
 
     dim_x = X.shape[0]
     dim_u, T=  U.shape
@@ -167,7 +199,14 @@ if __name__ == '__main__':
         pvalue_residuals_variance_test(residuals_unpoisoned, dim_u, np.linalg.eigvalsh(SigmaW).tolist())
     )
 
-    DeltaX, DeltaU = compute_attack(unpoisoned_data, max_iterations=1000)
+    DeltaX, DeltaU, losses = compute_attack(unpoisoned_data, max_iterations=10000)
+    tildeX = X + DeltaX
+    tildeU = U + DeltaU
+    D_poisoned = np.vstack((tildeX[:, :-1], tildeU))
+    AB_poisoned = tildeX[:, 1:] @ np.linalg.pinv(D_poisoned)
+    import pdb
+    pdb.set_trace()
+
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(1, dim_x +dim_u)
     for i in range(dim_x):

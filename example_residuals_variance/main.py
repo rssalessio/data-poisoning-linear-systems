@@ -30,7 +30,7 @@ def evaluate_attack(true_residuals: np.ndarray, AB: np.ndarray, DeltaX: np.ndarr
 
 
 
-deltas = np.geomspace(1e-4, 1e-1, 50)
+deltas = [0.1]# np.geomspace(1e-4, 1e-1, 50)
 
 
 def run_simulation(id_sim: int):
@@ -62,6 +62,12 @@ def run_simulation(id_sim: int):
         res.opt_DeltaX[idx_delta] = DeltaX.value
         res.opt_DeltaU[idx_delta] = DeltaU.value
 
+        Xtilde = X+DeltaX.value
+        Utilde = U + DeltaU.value
+        Dtilde = np.vstack((Xtilde[:, :-1], Utilde))
+        import pdb
+        pdb.set_trace()
+
         # Gaussian attack
         gauss_val = 0
         unif_val = 0
@@ -91,7 +97,8 @@ def run_simulation(id_sim: int):
     return res
 
 if __name__ == '__main__':
-    with mp.Pool(NUM_CPUS) as p:
-        results = p.map(run_simulation, [x for x in range(NUM_SIMS)])
+    # with mp.Pool(NUM_CPUS) as p:
+    #     results = p.map(run_simulation, [x for x in range(NUM_SIMS)])
 
-    np.save('data.npy', results, allow_pickle=True)
+    run_simulation(0)
+    # np.save('data.npy', results, allow_pickle=True)

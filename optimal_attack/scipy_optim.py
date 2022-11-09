@@ -13,108 +13,91 @@ from data_structures import *
 from modules import * 
 from scipy.optimize import minimize,NonlinearConstraint
 np.set_printoptions(formatter={'float_kind':"{:.4f}".format})
+import time
+from functorch import jacrev, jacfwd
 
 
-def log(epoch: int, info: AttackOptimizationInfo) -> None:
-    SPACING = 30
-    print(f"---------- Epoch {epoch} ----------")
-    print(f"{'Eval':<40} {'Statistics'}")
-    print(f"    {'loss:' + f'{info.loss[-1]:.4f}':<40} whiteness_unp: {info.unpoisoned_data.whiteness_statistics_test_unpoisoned.statistics:.4f}")
-    print(f"    {'delta_norm:' +f'{info.delta_norm[-1]:.4f}':<40} whiteness_pos: {info.whiteness_statistics_test_poisoned[-1].statistics:.4f}")
-    print(f"    {'residuals_norm:' f'{info.residuals_norm[-1]:.4f}':<40} res_var_unpos: {info.unpoisoned_data.residuals_variance_test_unpoisoned.statistics:.4f}")
-    print(f"    {'regularizer:' f'{info.regularizer[-1]:.4f}':<40} res_var_pos: {info.residuals_variance_test_poisoned[-1].statistics:.4f}")
 
 
-def objective_function(x: np.ndarray, X, U, AB_unpoisoned):
-        dim_x, dim_u, T = X.shape[0], U.shape[0], U.shape[1]
-        DeltaX = x[:dim_x * (T+1)].reshape(dim_x, T+1)
-        DeltaU = x[dim_x * (T+1):].reshape(dim_u, T)
-
-        tildeX = X + DeltaX
-        tildeU = U + DeltaU
-        AB_poisoned = tildeX[:, 1:] @ np.linalg.pinv(np.vstack((tildeX[:, :-1], tildeU)))
-        DeltaAB = AB_poisoned - AB_unpoisoned
-        loss= np.linalg.norm(DeltaAB, 2)
-        print(loss)
-        return -loss
-
-def grad_objective_function(x: np.ndarray, X, U, AB_unpoisoned):
-        dim_x, dim_u, T = X.shape[0], U.shape[0], U.shape[1]
-        x = torch.tensor(x, requires_grad=True)
-        DeltaX = x[:dim_x * (T+1)].reshape(dim_x, T+1)
-        DeltaU = x[dim_x * (T+1):].reshape(dim_u, T)
-
-        tildeX = torch.tensor(X) + DeltaX
-        tildeU = torch.tensor(U) + DeltaU
-        AB_poisoned = tildeX[:, 1:] @ torch.linalg.pinv(torch.vstack((tildeX[:, :-1], tildeU)))
-        DeltaAB = AB_poisoned - torch.tensor(AB_unpoisoned)
-        loss= -torch.linalg.norm(DeltaAB, 2)
-        loss.backward()
-
-        return x.grad.detach().numpy().flatten()
-
-def compute_constraints(x: np.ndarray, X: np.ndarray, U: np.ndarray, AB_unpoisoned: np.ndarray, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms):
+def objective_function(x: np.ndarray, X, U, AB_unpoisoned, gradients=False):
+    print(f'obj - {gradients}')
+    torch.set_grad_enabled(gradients)
     dim_x, dim_u, T = X.shape[0], U.shape[0], U.shape[1]
+    x = torch.tensor(x, requires_grad=gradients)
     DeltaX = x[:dim_x * (T+1)].reshape(dim_x, T+1)
     DeltaU = x[dim_x * (T+1):].reshape(dim_u, T)
 
-    tildeX = X + DeltaX
-    tildeU = U + DeltaU
-    D_poisoned = np.vstack((tildeX[:, :-1], tildeU))
-    AB_poisoned = tildeX[:, 1:] @ np.linalg.pinv(D_poisoned)
+    tildeX = torch.tensor(X) + DeltaX
+    tildeU = torch.tensor(U) + DeltaU
+    AB_poisoned = tildeX[:, 1:] @ torch.linalg.pinv(torch.vstack((tildeX[:, :-1], tildeU)))
+    DeltaAB = AB_poisoned - torch.tensor(AB_unpoisoned)
+    loss= -torch.linalg.norm(DeltaAB, 2)
+
+    if gradients is False:
+        return loss.item()
+    loss.backward()
+
+    return x.grad.detach().numpy().flatten()
+
+
+
+def _compute_constraints(x: torch.Tensor, X: np.ndarray, U: np.ndarray, AB_unpoisoned: np.ndarray, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms):
+    dim_x, dim_u, T = X.shape[0], U.shape[0], U.shape[1]
+    #x = torch.tensor(x, requires_grad=gradients)
+    DeltaX = x[:dim_x * (T+1)].reshape(dim_x, T+1)
+    DeltaU = x[dim_x * (T+1):].reshape(dim_u, T)
+
+    tildeX = torch.tensor(X) + DeltaX
+    tildeU = torch.tensor(U) + DeltaU
+    D_poisoned = torch.vstack((tildeX[:, :-1], tildeU))
+    AB_poisoned = tildeX[:, 1:] @ torch.linalg.pinv(D_poisoned)
 
     residuals_poisoned = tildeX[:, 1:] - AB_poisoned @ D_poisoned
 
-    R = correlate(residuals_poisoned, s + 1)
-    R0Inv = np.linalg.inv(R[0])
-    c_r = np.linalg.norm(residuals_poisoned, 'fro') ** 2 / norm_unpoisoned_residuals
+    R = torch_correlate(residuals_poisoned, s + 1)
+    R0Inv = torch.linalg.inv(R[0])
+    c_r = torch.linalg.norm(residuals_poisoned, 'fro') ** 2 / norm_unpoisoned_residuals
 
     c_c = []
-        # Correlation constraints
+    # Correlation constraints
     for tau in range(s):
-        c_c.append(np.linalg.norm(R[tau+1] @ R0Inv, 'fro') **2 / norm_unpoisoned_correlation_terms[tau])
+        c_c.append(torch.linalg.norm(R[tau+1] @ R0Inv, 'fro') **2 / norm_unpoisoned_correlation_terms[tau])
 
-    c_c = np.vstack(c_c)
+    c_c = torch.vstack(c_c)
     # Build augmented lagrangian loss
-    stacked_constraints = np.vstack((
-        np.abs(1-c_r) - 0.1, 
-        np.abs(1-c_c) - 0.1)
+    stacked_constraints = torch.vstack((
+        torch.abs(1-c_r) - 0.1, 
+        torch.abs(1-c_c) - 0.1)
         ).flatten()
-    print(stacked_constraints)
+
     return -stacked_constraints
 
-def grad_compute_constraints(_x: np.ndarray, X: np.ndarray, U: np.ndarray, AB_unpoisoned: np.ndarray, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms):
-    dim_x, dim_u, T = X.shape[0], U.shape[0], U.shape[1]
-    _x = torch.tensor(_x, requires_grad=True)
-    def _compute(x):
-        DeltaX = x[:dim_x * (T+1)].reshape(dim_x, T+1)
-        DeltaU = x[dim_x * (T+1):].reshape(dim_u, T)
+    # if gradients is False:
+    #     return _compute(_x)
+    # start = time.time()
+    # grads = jacfwd(_compute)(_x).detach().numpy()
+    # #grads = torch.autograd.functional.jacobian(_compute, _x, vectorize=True).detach().numpy()
+    # print(f'Gradient computation {time.time()-start}')
+    # import pdb
+    # pdb.set_trace()
+    # return grads
 
-        tildeX = torch.tensor(X) + DeltaX
-        tildeU = torch.tensor(U) + DeltaU
-        D_poisoned = torch.vstack((tildeX[:, :-1], tildeU))
-        AB_poisoned = tildeX[:, 1:] @ torch.linalg.pinv(D_poisoned)
+# from functorch.compile import aot_function
+# grads_constraints = jacrev(_compute_constraints)
 
-        residuals_poisoned = tildeX[:, 1:] - AB_poisoned @ D_poisoned
 
-        R = torch_correlate(residuals_poisoned, s + 1)
-        R0Inv = torch.linalg.inv(R[0])
-        c_r = torch.linalg.norm(residuals_poisoned, 'fro') ** 2 / norm_unpoisoned_residuals
 
-        c_c = []
-        # Correlation constraints
-        for tau in range(s):
-            c_c.append(torch.linalg.norm(R[tau+1] @ R0Inv, 'fro') **2 / norm_unpoisoned_correlation_terms[tau])
-
-        c_c = torch.vstack(c_c)
-        # Build augmented lagrangian loss
-        stacked_constraints = torch.vstack((
-            torch.abs(1-c_r) - 0.1, 
-            torch.abs(1-c_c) - 0.1)
-            ).flatten()
-        return -stacked_constraints
-    grads = torch.autograd.functional.jacobian(_compute, _x, vectorize=True)
-    return grads.detach().numpy()
+def compute_gradients(x: np.ndarray, X: np.ndarray, U: np.ndarray, AB_unpoisoned: np.ndarray, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms, gradients=True):
+    print(gradients)
+    torch.set_grad_enabled(gradients)
+    x = torch.tensor(x, requires_grad=gradients)
+    if gradients is True:
+        start = time.time()
+        grads = torch.autograd.functional.jacobian(lambda y: _compute_constraints(y, X, U, AB_unpoisoned, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms), x, vectorize=True).detach().numpy()
+        #grads= grads_constraints(x, X, U, AB_unpoisoned, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms).detach().numpy()
+        print(f'Gradient computation {time.time()-start}')
+        return grads
+    return _compute_constraints(x, X, U, AB_unpoisoned, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms)
 
 if __name__ == '__main__':
     dt = 0.05
@@ -147,22 +130,25 @@ if __name__ == '__main__':
     R0inv_unpoisoned = np.linalg.inv(R[0])
     norm_unpoisoned_correlation_terms = [np.linalg.norm(R[idx+1] @ R0inv_unpoisoned, 'fro') ** 2 for idx in range(s)]
     
+    
 
     #constraints = NonlinearConstraint(compute_constraints, -np.infty * np.ones(s+1), np.zeros(s+1), jac=grad_compute_constraints, keep_feasible=True)
     constraints = [{
             'type': 'ineq',
-            'fun': compute_constraints,
-            #'jac': grad_compute_constraints,
+            'fun': lambda *args: compute_gradients(*args, gradients=False),
+            'jac': lambda *args: compute_gradients(*args, gradients=True),
             'args': (X, U, AB_unpoisoned, norm_unpoisoned_residuals, R, R0inv_unpoisoned, norm_unpoisoned_correlation_terms)
     }]
 
+
+    
 
     res = minimize(
         fun= objective_function,
         x0=np.zeros(dim_x * (T+1) + dim_u * T),
         args=(X, U, AB_unpoisoned),
         bounds=[(-0.3,0.3) for i in range(dim_x * (T+1) + dim_u * T)],
-        jac=grad_objective_function,
+        jac= lambda *args: objective_function(*args, gradients=True),
         method = 'SLSQP',
         constraints=constraints,
         options={'disp': True, 'maxiter': 100})
