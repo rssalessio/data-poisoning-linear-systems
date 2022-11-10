@@ -146,11 +146,11 @@ def _compute(i: int, id: int, data: CollectedData):
 
 if __name__ == '__main__':
     T = 500
-    NUM_SEEDS = 10
-    deltas = [0.001, 0.025, 0.05, 0.075, 0.1]
+    NUM_SEEDS = 1
+    deltas = [0.01]#, 0.025, 0.05, 0.075, 0.1]
 
     
-    for i in range(100):
+    for i in range(1):
         with open(f'data/data_{T}timesteps_{i}.pkl', 'rb') as f:
             data: CollectedData = pickle.load(f)
             with mp.Pool(NUM_SEEDS) as pool:
