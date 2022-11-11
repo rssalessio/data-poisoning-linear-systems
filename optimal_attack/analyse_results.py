@@ -224,7 +224,7 @@ ax[0].boxplot(results_norm_error.T, labels=[0] + deltas, widths=0.5,showmeans=Tr
 #     ax[0].scatter((1+idx_delta)* np.ones_like(results_norm_error[idx_delta]), results_norm_error[idx_delta], alpha=0.4)
 
 ax[0].set_xlabel('$\delta$')
-ax[0].set_ylabel(r"$\|\begin{bmatrix} \Delta \tilde A_{LS} & \Delta \tilde B_{LS} \end{bmatrix}\|_2$")
+ax[0].set_title(r"$\|\begin{bmatrix} \Delta \tilde A_{LS} & \Delta \tilde B_{LS} \end{bmatrix}\|_2$")
 ax[0].grid()
 
 ax[1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans=True)
@@ -235,7 +235,7 @@ ax[1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans=T
 
 ax[1].grid()
 ax[1].set_xlabel('$\delta$')
-ax[1].set_ylabel(r"$\|\tilde R_t\|_2$")
+ax[1].set_title(r"$\|\tilde R_t\|_2$")
 
 
 ax[2].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=True)
@@ -244,19 +244,19 @@ ax[2].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=True)
 
 ax[2].grid()
 ax[2].set_xlabel('$\delta$')
-ax[2].set_ylabel(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
+ax[2].set_title(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
 
 plt.savefig('main_plot.pdf', bbox_inches='tight')
 
 
-fig, ax = plt.subplots(2,2, figsize=(14,8))
+fig, ax = plt.subplots(2,2, figsize=(16,12))
 ax[0,0].boxplot(results_norm_error.T, labels=[0] + deltas, widths=0.5,showmeans=True)
 
 # for idx_delta, delta in enumerate([0] + deltas):
 #     ax[0,0].scatter((1+idx_delta)* np.ones_like(results_norm_error[idx_delta]), results_norm_error[idx_delta], alpha=0.4)
 
 ax[0,0].set_xlabel('$\delta$')
-ax[0,0].set_ylabel(r"$\|\begin{bmatrix} \Delta \tilde A_{LS} & \Delta \tilde B_{LS} \end{bmatrix}\|_2$")
+ax[0,0].set_title(r"$\|\begin{bmatrix} \Delta \tilde A_{LS} & \Delta \tilde B_{LS} \end{bmatrix}\|_2$")
 ax[0,0].grid()
 
 ax[0,1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans=True)
@@ -267,7 +267,7 @@ ax[0,1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans
 
 ax[0,1].grid()
 ax[0,1].set_xlabel('$\delta$')
-ax[0,1].set_ylabel(r"$\|\tilde R_t\|_2$")
+ax[0,1].set_title(r"$\|\tilde R_t\|_2$")
 
 
 ax[1,0].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=True)
@@ -276,7 +276,7 @@ ax[1,0].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=True)
 
 ax[1,0].grid()
 ax[1,0].set_xlabel('$\delta$')
-ax[1,0].set_ylabel(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
+ax[1,0].set_title(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
 
 
 
@@ -286,7 +286,7 @@ ax[1,1].boxplot(summary_leverage.T, labels = [0] + deltas, widths=0.5,showmeans=
 
 ax[1,1].grid()
 ax[1,1].set_xlabel('$\delta$')
-ax[1,1].set_ylabel(r"$h_{ii}$")
+ax[1,1].set_title(r"$h_{ii}$")
 
 plt.savefig('main_plot_with_leverage.pdf', bbox_inches='tight')
 
@@ -452,19 +452,20 @@ ax = [plt.subplot(gs[0, :2], ), plt.subplot(gs[0, 2:]), plt.subplot(gs[1, 1:3])]
 
 ax[2].boxplot(angle_results.T, labels=[0] + deltas, widths=0.5,showmeans=True)
 ax[2].set_xlabel('$\delta$')
-ax[2].set_ylabel(r"$\angle (\theta_{\textrm{LS}},  \Delta \tilde{\theta}_{\textrm{LS}})$ [rad]")
+ax[2].set_ylabel(r"[rad]")
+ax[2].set_title(r"$\angle (\theta_{\textrm{LS}},  \Delta \tilde{\theta}_{\textrm{LS}})$")
 ax[2].grid()
 ax[2].set_yticklabels([r"$" + str(round(r/np.pi,2))+ r"\pi$" for r in ax[2].get_yticks()])
 
 
 ax[0].boxplot(summary_A.T, labels=[0] + deltas, widths=0.5,showmeans=True)
 ax[0].set_xlabel('$\delta$')
-ax[0].set_ylabel(r"$\|\Delta \tilde A_{LS} \|_2$")
+ax[0].set_title(r"$\|\Delta \tilde A_{LS} \|_2$")
 ax[0].grid()
 
 ax[1].boxplot(summary_B.T, labels=[0] + deltas, widths=0.5,showmeans=True)
 ax[1].set_xlabel('$\delta$')
-ax[1].set_ylabel(r"$\|  \Delta \tilde B_{LS}\|_2$")
+ax[1].set_title(r"$\|  \Delta \tilde B_{LS}\|_2$")
 ax[1].grid()
 
 
