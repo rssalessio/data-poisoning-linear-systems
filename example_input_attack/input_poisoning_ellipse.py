@@ -4,6 +4,7 @@ import scipy.stats as scipystats
 from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
 from constants import *
+from scipy.stats import f
 np.random.seed(200)
 
 
@@ -43,7 +44,7 @@ def collect_data(steps: int, std_u: float, std_w: float) -> Tuple[np.ndarray, np
 
     return X.T, U.T
 
-std_w = 1e-1
+std_w = 0.1#e-1
 std_u = 1
 samples = [30, 100, 1000]
 
@@ -95,8 +96,8 @@ for id, sample_size in enumerate(samples):
     std_sq_dev_orig = residuals_orig / (sample_size - 2)
     std_sq_dev_pois = residuals_pois / (sample_size - 2)
 
-    cov_pois = 5.99*std_sq_dev_pois * data_pois
-    cov_orig = 5.99*std_sq_dev_orig * data_orig
+    cov_pois = f.ppf(0.975, 2, sample_size-2)*std_sq_dev_pois * data_pois
+    cov_orig = f.ppf(0.975, 2, sample_size-2)*std_sq_dev_orig * data_orig
 
     eigenvalues_pois, eigenvectors_pois = np.linalg.eig(cov_pois)
     eigenvalues_orig, eigenvectors_orig = np.linalg.eig(cov_orig)
@@ -135,4 +136,4 @@ for id, sample_size in enumerate(samples):
 
 plt.legend(bbox_to_anchor=(0.735, 0.95), loc="lower right",
                 bbox_transform=fig.transFigure, ncol=2, frameon=False)
-plt.savefig('input_poisoning.pdf',bbox_inches='tight')
+plt.savefig(f'input_poisoning_{std_w}.pdf',bbox_inches='tight')

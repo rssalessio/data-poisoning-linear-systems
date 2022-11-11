@@ -141,7 +141,14 @@ summary_corr_poisoned = np.zeros((len(deltas), len(sims)))
 summary_corr_unpoisoned = np.zeros((len(deltas), len(sims)))
 
 
-angle = np.zeros((len(deltas), len(sims)))
+angle_poisoned = np.zeros((len(deltas), len(sims)))
+angle_unpoisoned = np.zeros((len(deltas), len(sims)))
+
+summary_A_poisoned = np.zeros((len(deltas), len(sims)))
+summary_A_unpoisoned = np.zeros((len(deltas), len(sims)))
+
+summary_B_poisoned = np.zeros((len(deltas), len(sims)))
+summary_B_unpoisoned = np.zeros((len(deltas), len(sims)))
 sims_data: List[CollectedData] = []
 results_data: Dict[float, List[ResultsData]] = {delta: [None for _ in range(len(sims))] for delta in deltas}
 
@@ -157,7 +164,7 @@ for id_sim in sims:
                 res: OptimizeResult = pickle.load(handle)
                 attack_data = compute_data(sims_data[-1], res)
                 DeltaAB = attack_data.AB_poisoned - trueAB
-                
+                dim_x = sims_data[-1].X.shape[0]
 
                 if np.linalg.norm(DeltaAB, 2) > summary_results[idx_delta, id_sim]:
                     results_data[delta][id_sim] = attack_data
@@ -178,13 +185,22 @@ for id_sim in sims:
                     summary_corr_unpoisoned[idx_delta, id_sim] = T*np.sum(attack_data.unpoisoned_correlations)
                     
                     ABnorm = attack_data.AB_unpoisoned.flatten() / np.linalg.norm(attack_data.AB_unpoisoned.flatten())
-                    angle[idx_delta, id_sim] = (180/np.pi)*angle_between(ABnorm, DeltaAB.flatten())#np.abs(np.dot(ABnorm, DeltaAB.flatten()))
+                    angle_poisoned[idx_delta, id_sim] = angle_between(ABnorm, DeltaAB.flatten())#np.abs(np.dot(ABnorm, DeltaAB.flatten()))
+                    angle_unpoisoned[idx_delta, id_sim] = angle_between(ABnorm, (attack_data.AB_unpoisoned-trueAB).flatten())#np.abs(np.dot(ABnorm, DeltaAB.flatten()))
 
                     summary_leverage_poisoned[idx_delta, id_sim] = attack_data.leverage_poisoned
                     summary_leverage_unpoisoned[idx_delta, id_sim] = attack_data.leverage_unpoisoned
                     
+
+                    deltaAB_unpoisoned = attack_data.AB_unpoisoned - trueAB
                     summary_results[idx_delta, id_sim] = np.linalg.norm(DeltaAB, 2)
-                    summary_results_unpoisoned[idx_delta, id_sim] = np.linalg.norm(attack_data.AB_unpoisoned - trueAB, 2)
+                    summary_results_unpoisoned[idx_delta, id_sim] = np.linalg.norm(deltaAB_unpoisoned, 2)
+
+                    summary_A_poisoned[idx_delta, id_sim] = np.linalg.norm(DeltaAB[:, :dim_x],2)
+                    summary_A_unpoisoned[idx_delta, id_sim] = np.linalg.norm(deltaAB_unpoisoned[:, :dim_x],2)
+
+                    summary_B_poisoned[idx_delta, id_sim] = np.linalg.norm(DeltaAB[:, dim_x:],2)
+                    summary_B_unpoisoned[idx_delta, id_sim] = np.linalg.norm(deltaAB_unpoisoned[:, dim_x:],2)
 
 
 
@@ -198,17 +214,20 @@ summary_leverage= np.vstack(([summary_leverage_unpoisoned[0]], summary_leverage_
 
 summary_c= np.vstack(([summary_corr_unpoisoned[0]], summary_corr_poisoned)).reshape(6, -1)
 
-fig, ax = plt.subplots(1,4, figsize=(26,4))
-ax[0].boxplot(results_norm_error.T, labels=[0] + deltas, widths=0.5,showmeans=False)
+angle_results = np.vstack(([angle_unpoisoned[0]], angle_poisoned))
+summary_A = np.vstack(([summary_A_unpoisoned[0]], summary_A_poisoned))
+summary_B = np.vstack(([summary_B_unpoisoned[0]], summary_B_poisoned))
+fig, ax = plt.subplots(1,3, figsize=(16,4))
+ax[0].boxplot(results_norm_error.T, labels=[0] + deltas, widths=0.5,showmeans=True)
 
-for idx_delta, delta in enumerate([0] + deltas):
-    ax[0].scatter((1+idx_delta)* np.ones_like(results_norm_error[idx_delta]), results_norm_error[idx_delta], alpha=0.4)
+# for idx_delta, delta in enumerate([0] + deltas):
+#     ax[0].scatter((1+idx_delta)* np.ones_like(results_norm_error[idx_delta]), results_norm_error[idx_delta], alpha=0.4)
 
 ax[0].set_xlabel('$\delta$')
 ax[0].set_ylabel(r"$\|\begin{bmatrix} \Delta \tilde A_{LS} & \Delta \tilde B_{LS} \end{bmatrix}\|_2$")
 ax[0].grid()
 
-ax[1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans=False)
+ax[1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans=True)
 
 # for idx_delta, delta in enumerate([0] + deltas):
 #     ax[1].scatter((1+idx_delta)* np.ones_like(summary_residuals[idx_delta]), summary_residuals[idx_delta], alpha=0.4)
@@ -219,7 +238,7 @@ ax[1].set_xlabel('$\delta$')
 ax[1].set_ylabel(r"$\|\tilde R_t\|_2$")
 
 
-ax[2].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=False)
+ax[2].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=True)
 # for idx_delta, delta in enumerate([0] + deltas):
 #     ax[2].scatter((1+idx_delta)* np.ones_like(summary_c[idx_delta]), summary_c[idx_delta], alpha=0.4)
 
@@ -227,17 +246,49 @@ ax[2].grid()
 ax[2].set_xlabel('$\delta$')
 ax[2].set_ylabel(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
 
+plt.savefig('main_plot.pdf', bbox_inches='tight')
 
 
-ax[3].boxplot(summary_leverage.T, labels = [0] + deltas, widths=0.5,showmeans=False)
+fig, ax = plt.subplots(2,2, figsize=(14,8))
+ax[0,0].boxplot(results_norm_error.T, labels=[0] + deltas, widths=0.5,showmeans=True)
+
+# for idx_delta, delta in enumerate([0] + deltas):
+#     ax[0,0].scatter((1+idx_delta)* np.ones_like(results_norm_error[idx_delta]), results_norm_error[idx_delta], alpha=0.4)
+
+ax[0,0].set_xlabel('$\delta$')
+ax[0,0].set_ylabel(r"$\|\begin{bmatrix} \Delta \tilde A_{LS} & \Delta \tilde B_{LS} \end{bmatrix}\|_2$")
+ax[0,0].grid()
+
+ax[0,1].boxplot(summary_residuals.T, labels = [0] + deltas, widths=0.5,showmeans=True)
+
+# for idx_delta, delta in enumerate([0] + deltas):
+#     ax[1].scatter((1+idx_delta)* np.ones_like(summary_residuals[idx_delta]), summary_residuals[idx_delta], alpha=0.4)
+
+
+ax[0,1].grid()
+ax[0,1].set_xlabel('$\delta$')
+ax[0,1].set_ylabel(r"$\|\tilde R_t\|_2$")
+
+
+ax[1,0].boxplot(summary_c.T, labels = [0] + deltas, widths=0.5, showmeans=True)
 # for idx_delta, delta in enumerate([0] + deltas):
 #     ax[2].scatter((1+idx_delta)* np.ones_like(summary_c[idx_delta]), summary_c[idx_delta], alpha=0.4)
 
-ax[3].grid()
-ax[3].set_xlabel('$\delta$')
-ax[3].set_ylabel(r"$h_{ii}$")
+ax[1,0].grid()
+ax[1,0].set_xlabel('$\delta$')
+ax[1,0].set_ylabel(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
 
-plt.savefig('main_plot.pdf', bbox_inches='tight')
+
+
+ax[1,1].boxplot(summary_leverage.T, labels = [0] + deltas, widths=0.5,showmeans=True)
+# for idx_delta, delta in enumerate([0] + deltas):
+#     ax[2].scatter((1+idx_delta)* np.ones_like(summary_c[idx_delta]), summary_c[idx_delta], alpha=0.4)
+
+ax[1,1].grid()
+ax[1,1].set_xlabel('$\delta$')
+ax[1,1].set_ylabel(r"$h_{ii}$")
+
+plt.savefig('main_plot_with_leverage.pdf', bbox_inches='tight')
 
 
 # results_norm_error = summary_results.max(-1)
@@ -390,3 +441,32 @@ for idx_delta, delta in enumerate(deltas):
 
 
 plt.savefig('sample_poisoning.pdf', bbox_inches='tight')
+
+
+import matplotlib.gridspec as gridspec
+fig = plt.figure(figsize=(12,8))
+
+gs = gridspec.GridSpec(2, 4, figure=fig)
+gs.update(wspace=0.5)
+ax = [plt.subplot(gs[0, :2], ), plt.subplot(gs[0, 2:]), plt.subplot(gs[1, 1:3])]
+
+ax[2].boxplot(angle_results.T, labels=[0] + deltas, widths=0.5,showmeans=True)
+ax[2].set_xlabel('$\delta$')
+ax[2].set_ylabel(r"$\angle (\theta_{\textrm{LS}},  \Delta \tilde{\theta}_{\textrm{LS}})$ [rad]")
+ax[2].grid()
+ax[2].set_yticklabels([r"$" + str(round(r/np.pi,2))+ r"\pi$" for r in ax[2].get_yticks()])
+
+
+ax[0].boxplot(summary_A.T, labels=[0] + deltas, widths=0.5,showmeans=True)
+ax[0].set_xlabel('$\delta$')
+ax[0].set_ylabel(r"$\|\Delta \tilde A_{LS} \|_2$")
+ax[0].grid()
+
+ax[1].boxplot(summary_B.T, labels=[0] + deltas, widths=0.5,showmeans=True)
+ax[1].set_xlabel('$\delta$')
+ax[1].set_ylabel(r"$\|  \Delta \tilde B_{LS}\|_2$")
+ax[1].grid()
+
+
+
+plt.savefig('angle_a_b_results.pdf', bbox_inches='tight')
