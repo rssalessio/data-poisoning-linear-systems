@@ -124,4 +124,4 @@ for id, sample_size in enumerate(samples):
 
 plt.legend(bbox_to_anchor=(0.735, 0.95), loc="lower right",
                 bbox_transform=fig.transFigure, ncol=2, frameon=False)
-plt.savefig(f'figures/input_poisoning_{std_w}.pdf',bbox_inches='tight')
+plt.savefig(f'figures/input_poisoning_{std_w}.png',bbox_inches='tight')
