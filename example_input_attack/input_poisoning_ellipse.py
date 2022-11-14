@@ -1,9 +1,9 @@
 import numpy as np
-from typing import Tuple
-import scipy.stats as scipystats
-from matplotlib.patches import Patch
 import matplotlib.pyplot as plt
-from constants import *
+import scipy.stats as scipystats
+from typing import Tuple
+from matplotlib.patches import Patch
+from plot_options import *
 from scipy.stats import f
 np.random.seed(200)
 
@@ -31,7 +31,6 @@ B = np.array([[0.5]])
 dim_x = 1
 dim_u = 1
 
-
 def collect_data(steps: int, std_u: float, std_w: float) -> Tuple[np.ndarray, np.ndarray]:
     U = np.zeros((dim_u, steps))
     X = np.zeros((dim_x, steps + 1))
@@ -40,7 +39,7 @@ def collect_data(steps: int, std_u: float, std_w: float) -> Tuple[np.ndarray, np
 
     for i in range(steps):
         U[:, i] = std_u * np.random.normal(size=(dim_u))
-        X[:, i+1] = A @ X[:, i] +  np.squeeze(B * U[:, i]) + std_w * np.random.normal(size=(dim_x)) #(low=-0.1, high=0.1)#(size=(dim_x))
+        X[:, i+1] = A @ X[:, i] +  np.squeeze(B * U[:, i]) + std_w * np.random.normal(size=(dim_x))
 
     return X.T, U.T
 
@@ -49,7 +48,6 @@ std_u = 1
 samples = [30, 100, 1000]
 
 fig, ax = plt.subplots(1, 3, figsize=(12,4))
-#fig.suptitle("Identification of $(a,b)$ - Input poisoning", fontsize=TITLE_SIZE)
 
 for id, sample_size in enumerate(samples):
     X, U = collect_data(sample_size, std_u, std_w)
@@ -69,8 +67,6 @@ for id, sample_size in enumerate(samples):
     residuals_pois = R2
     F = ((R1-R2)/k)/(  R2 / nu)
     print(f'T: {sample_size} - F: {F} - P: {1-scipystats.f.cdf(F, k, nu)}')
-
-
 
     AB_noU = X[1:].T @ np.linalg.pinv(X[:-1].T)
     AB = X[1:].T @ np.linalg.pinv(np.vstack([X[:-1].T, U.T]))
@@ -124,16 +120,8 @@ for id, sample_size in enumerate(samples):
         ax[id].set_ylabel(r'$b$',weight='bold')
     ax[id].grid(alpha=0.3)
     ax[id].set_title(f'T={sample_size} samples')
-    # if id > 0:
-    #     ax[id].get_yaxis().set_ticklabels([])
-
-    
-    # if id == 1:
-    #     ax[id].legend(
-    #         fancybox = True,facecolor="whitesmoke", loc='lower left', handles = [Patch(color=CB_color_cycle[0], label='Original'), Patch(color=CB_color_cycle[1], label='Poisoned')] )
-#fig.tight_layout(rect=[0, 0, 1, 0.95])
 
 
 plt.legend(bbox_to_anchor=(0.735, 0.95), loc="lower right",
                 bbox_transform=fig.transFigure, ncol=2, frameon=False)
-plt.savefig(f'input_poisoning_{std_w}.pdf',bbox_inches='tight')
+plt.savefig(f'figures/input_poisoning_{std_w}.pdf',bbox_inches='tight')
