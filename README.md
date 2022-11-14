@@ -8,10 +8,9 @@ Code for the paper _Analysis and Detectability of Offline Data Poisoning Attacks
 
 *License*: MIT
 
-
 ## Requirements
 
-TODO
+To run the examples you need the following libraries: `numpy scipy cvxpy dccp momentchi2 torch matplotlib`
 
 ## Input poisoning attack
 

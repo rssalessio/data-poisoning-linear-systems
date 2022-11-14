@@ -1,10 +1,7 @@
-from unittest import result
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import matplotlib.mathtext as mathtext
 import numpy as np
 from typing import List, Tuple
-from matplotlib.ticker import EngFormatter, StrMethodFormatter
 from utils import ResultsSimulation, residuals_variance_test, confidence_interval_signal
 TITLE_SIZE = 20
 LEGEND_SIZE = 20
