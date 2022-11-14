@@ -21,7 +21,7 @@ To run the example, run the file `main.py` in the folder `example_residuals_maxi
 
 To use the data of the paper, first extract the data from the file `example_residuals_maximization\data\data.7z`.
 <p align="center">
-  <img src="./example_residuals_maximization/figures/example_residuals_variance.png" width="50%">
+  <img src="./example_residuals_maximization/figures/example_residuals_variance.png" width="70%">
 </p>
 
 ## Stealthy attack
