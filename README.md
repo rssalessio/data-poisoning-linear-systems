@@ -34,7 +34,7 @@ To use the data of the paper, first extract the data from the file `example_resi
 All the data used in the papers can be found in the folder `example_stealthy_attack\data`.
 
 To plot the data use the `analyse_results.py` file.
-To run a new set of simulations use `extract_data.py` to collect datasets and `algorithm.py` to compute the poisoning attack using SLSQP.
+To run a new set of simulations use `extract_data.py` to collect the datasets, and `algorithm.py` to compute the poisoning attack using SLSQP.
 
 <p align="center">
   <img src="./example_stealthy_attack/figures/main_plot.png" width="70%">
