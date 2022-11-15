@@ -1,15 +1,12 @@
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+import scipy.signal as scipysig
 from scipy.optimize import OptimizeResult
 from typing import List, Dict, NamedTuple
-import scipy.signal as scipysig
 from scipy.stats import chi2
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.mathtext as mathtext
-import seaborn as sns
-from utils import CollectedData, correlate, pvalue_residuals_variance_test, TestStatistics, pvalue_whiteness_test
+from utils import CollectedData, correlate, pvalue_residuals_variance_test, pvalue_whiteness_test
 
 TITLE_SIZE = 20
 LEGEND_SIZE = 20

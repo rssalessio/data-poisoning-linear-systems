@@ -1,10 +1,11 @@
 import numpy as np
 import scipy.signal as scipysig
 import torch
+import torch.nn.functional as F
 from scipy.stats import chi2
 from typing import Tuple, List, NamedTuple
 from momentchi2 import hbe
-import torch.nn.functional as F
+
 
 class CollectedData(NamedTuple):
     X: np.ndarray

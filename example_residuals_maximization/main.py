@@ -1,9 +1,9 @@
 import numpy as np
 import scipy.signal as scipysig
-from typing import Tuple, NamedTuple
 import cvxpy as cp
 import multiprocessing as mp
 import dccp
+from typing import Tuple, NamedTuple
 from utils import collect_data, ResultsSimulation
 
 

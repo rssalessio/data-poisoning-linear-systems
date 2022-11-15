@@ -2,9 +2,7 @@
 import numpy as np
 import torch
 from utils import correlate, collect_data, torch_correlate, CollectedData
-from pyoptsparse import Optimization, IPOPT
-import scipy.signal as scipysig
-from scipy.optimize import minimize,NonlinearConstraint
+from scipy.optimize import minimize
 import pickle
 import multiprocessing as mp
 
