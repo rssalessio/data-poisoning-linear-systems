@@ -3,12 +3,30 @@ import numpy as np
 from abc import ABC, abstractmethod
 from typing import Callable, List, Tuple
 from math import ceil
+from scipy.linalg._fblas import dger, dgemm
 
 def is_positive_definite(x: np.ndarray, atol: float = 1e-9):
     return np.all(np.linalg.eigvals(x) > atol)
 
 def is_symmetric(a: np.ndarray, rtol: float = 1e-05, atol: float = 1e-08):
     return np.allclose(a, a.T, rtol=rtol, atol=atol)
+
+def mean_cov(X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    See https://groups.google.com/g/scipy-user/c/FpOU4pY8W2Y
+    """
+    n, p = X.shape
+    m = X.mean(axis=0)
+    # covariance matrix with correction for rounding error
+    # S = (cx'*cx - (scx'*scx/n))/(n-1)
+    # Am Stat 1983, vol 37: 242-247.
+    cx = X - m
+    scx = cx.sum(axis=0)
+    scx_op = dger(-1.0/n,scx,scx)
+    S = dgemm(1.0, cx.T, cx.T, beta=1.0,
+    c = scx_op, trans_a=0, trans_b=1, overwrite_c=1)
+    S[:] *= 1.0/(n-1)
+    return m, S.T
 
 class Population(ABC):
     def __init__(self, dim: int):
@@ -52,10 +70,9 @@ class GaussianPopulation(Population):
 
     def update(self, elite_results: List[Tuple[float, np.ndarray]], smoothed_update: float = 0.5, regularization: float = 1e-3):
         results, points = list(zip(*elite_results))
-        self.means = (1 - smoothed_update) * self.means + smoothed_update * np.mean(points, axis=0)
-        new_covariance = np.cov(np.transpose(points))  + regularization * np.eye(self.dim)
-
-        self.covariance = (1 - smoothed_update) * self.covariance + smoothed_update * new_covariance
+        new_mean, new_cov = mean_cov(np.array(points))
+        self.means = (1 - smoothed_update) * self.means + smoothed_update * new_mean
+        self.covariance = (1 - smoothed_update) * self.covariance + smoothed_update * (new_cov + regularization * np.eye(self.dim))
 
 
 def evaluate_population(
