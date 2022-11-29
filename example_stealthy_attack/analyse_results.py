@@ -243,7 +243,7 @@ ax[2].grid()
 ax[2].set_xlabel('$\delta$')
 ax[2].set_title(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
 
-plt.savefig('./figures/main_plot.png', bbox_inches='tight')
+plt.savefig('./figures/main_plot.png', bbox_inches='tight', dpi=300)
 
 
 fig, ax = plt.subplots(2,2, figsize=(16,12))
@@ -285,7 +285,7 @@ ax[1,1].grid()
 ax[1,1].set_xlabel('$\delta$')
 ax[1,1].set_title(r"$h_{ii}$")
 
-plt.savefig('./figures/main_plot_with_leverage.png', bbox_inches='tight')
+plt.savefig('./figures/main_plot_with_leverage.png', bbox_inches='tight', dpi=300)
 
 
 # results_norm_error = summary_results.max(-1)
@@ -360,7 +360,7 @@ for idx, delta in enumerate(deltas):
         #ax[idx, 1].legend(bbox_to_anchor=(1., 0.95), loc="lower right", ncol=2, frameon=False)
 
 #plt.legend()
-plt.savefig('./figures/residuals_correlations.png', bbox_inches='tight')
+plt.savefig('./figures/residuals_correlations.png', bbox_inches='tight', dpi=300)
 
 
 fig, ax = plt.subplots(len(deltas), 2, figsize=(8.27, 11.69))
@@ -437,7 +437,7 @@ for idx_delta, delta in enumerate(deltas):
 # ax[4].grid()
 
 
-plt.savefig('./figures/sample_poisoning.png', bbox_inches='tight')
+plt.savefig('./figures/sample_poisoning.png', bbox_inches='tight', dpi=300)
 
 
 import matplotlib.gridspec as gridspec
@@ -467,4 +467,4 @@ ax[1].grid()
 
 
 
-plt.savefig('./figures/angle_a_b_results.png', bbox_inches='tight')
+plt.savefig('./figures/angle_a_b_results.png', bbox_inches='tight', dpi=300)
