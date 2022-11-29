@@ -3,6 +3,8 @@ import pickle
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import scipy.signal as scipysig
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 from scipy.optimize import OptimizeResult
 from typing import List, Dict, NamedTuple
 from scipy.stats import chi2
@@ -243,7 +245,35 @@ ax[2].grid()
 ax[2].set_xlabel('$\delta$')
 ax[2].set_title(r"$T\sum_{\tau=1}^s \|\tilde C_\tau \tilde C_0^{-1}\|_F^2$")
 
-plt.savefig('./figures/main_plot.png', bbox_inches='tight', dpi=300)
+for ax_id in [0,1,2]:
+    fsize = ax[ax_id].get_xticklabels()[0].get_fontsize()
+    ax[ax_id].get_xticklabels()[0].set_fontsize(1.1 * fsize)
+    ax[ax_id].get_xticklabels()[0].set_fontweight('bold')
+    #ax[ax_id].get_xticklabels()[0].set_color('blue')
+
+
+
+legend_elements = [
+    Line2D([0], [0], linestyle='none', mfc='green', mec='green', marker='^', label='Mean'),
+    Line2D([0], [0], color='orange', lw=2, label='Median'),
+    Line2D([0], [0], linestyle='none', marker='o', mfc='black', mec='black', lw=2, label='Outlier', fillstyle='none'),
+    #Patch(color='none', label=r'$\delta=0$: unpoisoned')
+]
+
+leg = ax[0].legend(handles=legend_elements, fancybox=True, shadow=False, fontsize=14)
+
+leg_bounds = leg.get_window_extent().transformed(ax[0].transAxes.inverted()).bounds
+
+
+# these are matplotlib.patch.Patch properties
+props = dict(boxstyle='round', facecolor='wheat', alpha=0.75, linewidth=0.5)
+
+for ax_id in [0]:
+    # place a text box in upper left in axes coords
+    ax[ax_id].text(leg_bounds[0]+0.016, leg_bounds[1]-0.022, r'$\delta=0$: unpoisoned', transform=ax[ax_id].transAxes, fontsize=11,
+            verticalalignment='top', bbox=props)
+
+plt.savefig('./figures/main_plot.pdf', bbox_inches='tight', dpi=300)
 
 
 fig, ax = plt.subplots(2,2, figsize=(16,12))
@@ -285,7 +315,18 @@ ax[1,1].grid()
 ax[1,1].set_xlabel('$\delta$')
 ax[1,1].set_title(r"$h_{ii}$")
 
-plt.savefig('./figures/main_plot_with_leverage.png', bbox_inches='tight', dpi=300)
+
+
+legend_elements = [
+    Line2D([0], [0], linestyle='none', mfc='green', mec='green', marker='^', label='Mean'),
+    Line2D([0], [0], color='orange', lw=2, label='Median'),
+    Line2D([0], [0], linestyle='none', marker='o', mfc='black', mec='black', lw=2, label='Outlier', fillstyle='none'),
+    #Patch(color='none', label=r'$\delta=0$: unpoisoned')
+]
+
+leg = ax[0,0].legend(handles=legend_elements, fancybox=True, shadow=False, fontsize=14)
+
+plt.savefig('./figures/main_plot_with_leverage.pdf', bbox_inches='tight', dpi=300)
 
 
 # results_norm_error = summary_results.max(-1)
@@ -360,7 +401,7 @@ for idx, delta in enumerate(deltas):
         #ax[idx, 1].legend(bbox_to_anchor=(1., 0.95), loc="lower right", ncol=2, frameon=False)
 
 #plt.legend()
-plt.savefig('./figures/residuals_correlations.png', bbox_inches='tight', dpi=300)
+plt.savefig('./figures/residuals_correlations.pdf', bbox_inches='tight', dpi=300)
 
 
 fig, ax = plt.subplots(len(deltas), 2, figsize=(8.27, 11.69))
@@ -437,7 +478,7 @@ for idx_delta, delta in enumerate(deltas):
 # ax[4].grid()
 
 
-plt.savefig('./figures/sample_poisoning.png', bbox_inches='tight', dpi=300)
+plt.savefig('./figures/sample_poisoning.pdf', bbox_inches='tight', dpi=300)
 
 
 import matplotlib.gridspec as gridspec
@@ -466,5 +507,14 @@ ax[1].set_title(r"$\|  \Delta \tilde B_{LS}\|_2$")
 ax[1].grid()
 
 
+legend_elements = [
+    Line2D([0], [0], linestyle='none', mfc='green', mec='green', marker='^', label='Mean'),
+    Line2D([0], [0], color='orange', lw=2, label='Median'),
+    Line2D([0], [0], linestyle='none', marker='o', mfc='black', mec='black', lw=2, label='Outlier', fillstyle='none'),
+    #Patch(color='none', label=r'$\delta=0$: unpoisoned')
+]
 
-plt.savefig('./figures/angle_a_b_results.png', bbox_inches='tight', dpi=300)
+leg = ax[0].legend(handles=legend_elements, fancybox=True, shadow=False, fontsize=14)
+
+
+plt.savefig('./figures/angle_a_b_results.pdf', bbox_inches='tight', dpi=300)

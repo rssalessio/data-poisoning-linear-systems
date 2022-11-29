@@ -152,4 +152,4 @@ ax[2].set_yticklabels([r"$." + str(round(r/np.pi,2))[2:]+ r"\pi$" for r in ax[2]
 
 plt.legend(bbox_to_anchor=(0.750, 0.875), loc="lower right",
                 bbox_transform=fig.transFigure, ncol=3, frameon=False)
-plt.savefig('figures/example_residuals_variance.png',bbox_inches='tight',dpi=300)
+plt.savefig('figures/example_residuals_variance.pdf',bbox_inches='tight',dpi=300)
