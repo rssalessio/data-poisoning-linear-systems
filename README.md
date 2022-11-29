@@ -23,7 +23,7 @@ To run the example, run the file `main.py` in the folder `example_input_attack`.
 
 To run the example, run the file `main.py` in the folder `example_residuals_maximization`. Use `plot_data.py` to plot the results.
 
-To use the data of the paper, first extract the data from the file `example_residuals_maximization\data\data.7z` in the `data` folder.
+To use the data of the paper, first extract the data from the zipped files `example_residuals_maximization\data\compressed_data.*.zip` in the `data` folder.
 <p align="center">
   <img src="./example_residuals_maximization/figures/example_residuals_variance.png" width="100%">
 </p>
