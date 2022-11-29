@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Code for the paper _Analysis and Detectability of Offline Data Poisoning Attacks on Linear Systems_.
+Code for the paper [_Analysis and Detectability of Offline Data Poisoning Attacks on Linear Systems_](https://arxiv.org/abs/2211.08804).
 
 *Author*: Alessio Russo (alessior@kth.se)
 
