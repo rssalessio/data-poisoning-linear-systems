@@ -47,28 +47,21 @@ def confidence_interval_signal(signal: np.ndarray, n_sims: int, c: float = 0.95)
     c = t.ppf(c + (1-c)/2, df=n_sims-1)
     return mu, mu - c * std /np.sqrt(n_sims), mu + c * std / np.sqrt(n_sims)
 
+        
 class ResultsData(object):
-    def __init__(self, n: int):
-        self.true_delta_ab_norm = 0
-        self.true_residuals_variance = 0
-
-        self.poisoned_delta_ab_norm_optimal_atk = np.zeros(n)
-        self.poisoned_delta_ab_norm_gaussian_atk = np.zeros(n)
-        self.poisoned_residuals_variance_optimal_atk = np.zeros(n)
-        self.poisoned_residuals_variance_gaussian_atk = np.zeros(n)
-
-class ResultsSimulation(object):
-    def __init__(self, X: np.ndarray, U: np.ndarray, W: np.ndarray, Sigma: np.ndarray, TrueAB: np.ndarray, deltas: np.ndarray, n_deltas: int):
+    def __init__(self, X: np.ndarray, U: np.ndarray, W: np.ndarray, Sigma: np.ndarray, TrueAB: np.ndarray, deltas: np.ndarray):
         self.TrueAB = TrueAB
         self.X = X
         self.U = U
         self.W = W
         self.Sigma = Sigma
+        
+        n_deltas = len(deltas)
 
         self.opt_DeltaX = np.zeros((n_deltas,) + X.shape)
         self.gauss_DeltaX = np.zeros((n_deltas,) + X.shape)
-        self.unif_DeltaX = np.zeros((n_deltas,) + X.shape)
+        self.cem_DeltaX = np.zeros((n_deltas,) + X.shape)
         self.opt_DeltaU = np.zeros((n_deltas,) + U.shape)
         self.gauss_DeltaU = np.zeros((n_deltas,) + U.shape)
-        self.unif_DeltaU = np.zeros((n_deltas,) + U.shape)
+        self.cem_DeltaU = np.zeros((n_deltas,) + U.shape)
         self.deltas = deltas
