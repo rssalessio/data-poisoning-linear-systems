@@ -61,6 +61,9 @@ class TestStatistics(NamedTuple):
     p_left: float
 
 def collect_data(steps: int, std_u: float, std_w: float, sys: scipysig.StateSpace) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Function used to collect noisy data from a linear system
+    """
     dim_x, dim_u = sys.B.shape
     U = np.zeros((dim_u, steps))
     X = np.zeros((dim_x, steps + 1))
@@ -93,6 +96,16 @@ def residuals_variance_test(residuals: np.ndarray, dim_u: int, sigma_eigs: List[
     return TestStatistics(fro_norm_squared, p, 1-p)
 
 def confidence_interval_signal(signal: np.ndarray, n_sims: int, c: float = 0.95) -> Tuple[np.ndarray,np.ndarray, np.ndarray]:
+    """Compute the confidence interval of a signal
+
+    Args:
+        signal (np.ndarray): signal, a Matrix of size NxT, where N is the number of simulations and T is the horizon
+        n_sims (int): number of simulations
+        c (float, optional): confidence in (0,1). Defaults to 0.95.
+
+    Returns:
+        Tuple[np.ndarray,np.ndarray, np.ndarray]: mean, lower bound, upper bound
+    """    
     mu = signal.mean(0)
     std = signal.std(0)
     c = t.ppf(c + (1-c)/2, df=n_sims-1)
@@ -100,6 +113,9 @@ def confidence_interval_signal(signal: np.ndarray, n_sims: int, c: float = 0.95)
 
         
 class ResultsData(object):
+    """
+    Object used to store the data of a residuals attack
+    """    
     def __init__(self, X: np.ndarray, U: np.ndarray, W: np.ndarray, Sigma: np.ndarray, TrueAB: np.ndarray, deltas: np.ndarray):
         self.TrueAB = TrueAB
         self.X = X

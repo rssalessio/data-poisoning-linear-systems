@@ -1,3 +1,4 @@
+# Function used to generate the plots
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
@@ -134,13 +135,6 @@ axins.set_xticklabels([])
 # axins.ticklabel_format(axis='y', style='sci')
 
 ax[0].indicate_inset_zoom(axins, edgecolor="black", linewidth=1.5)
-
-
-
-
-
-
-
 
 
 resvar_optimal_mean, resvar_optimal_lower, resvar_optimal_upper = confidence_interval_signal(1-opt_poisoned_delta_test, N_SIMS)
