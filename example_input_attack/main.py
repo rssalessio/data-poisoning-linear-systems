@@ -1,13 +1,14 @@
+# Input attack example
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as scipystats
 from typing import Tuple
-from matplotlib.patches import Patch
 from plot_options import *
 from scipy.stats import f
 np.random.seed(200)
+np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
 
-
+## Matplotlib settings
 TITLE_SIZE = 28
 LEGEND_SIZE = 26
 TICK_SIZE = 20
@@ -22,15 +23,18 @@ plt.rc('ytick', labelsize=TICK_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=LEGEND_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=TITLE_SIZE)  # fontsize of the figure title
 
-
-np.set_printoptions(formatter={'float': lambda x: "{0:0.3f}".format(x)})
-
+## Linear system definition
 A = np.array([[0.7]])
 B = np.array([[0.5]])
 
 dim_x = 1
 dim_u = 1
 
+std_w = 0.1
+std_u = 1
+samples = [30, 100, 1000]
+
+## Data collection prcoess
 def collect_data(steps: int, std_u: float, std_w: float) -> Tuple[np.ndarray, np.ndarray]:
     U = np.zeros((dim_u, steps))
     X = np.zeros((dim_x, steps + 1))
@@ -43,15 +47,13 @@ def collect_data(steps: int, std_u: float, std_w: float) -> Tuple[np.ndarray, np
 
     return X.T, U.T
 
-std_w = 0.1#e-1
-std_u = 1
-samples = [30, 100, 1000]
-
 fig, ax = plt.subplots(1, 3, figsize=(12,4))
 
 for id, sample_size in enumerate(samples):
+    # Collect samples
     X, U = collect_data(sample_size, std_u, std_w)
 
+    # Compute attack and parameters
     AttackU = std_u * np.random.normal(size=U.shape)
     AB_noU = X[1:].T @ np.linalg.pinv(X[:-1].T)
     AB_poisoned = X[1:].T @ np.linalg.pinv(np.vstack([X[:-1].T, AttackU.T]))
@@ -65,7 +67,8 @@ for id, sample_size in enumerate(samples):
     R2 = np.power(X[1:] - Y2.T, 2).sum()
 
     residuals_pois = R2
-    F = ((R1-R2)/k)/(  R2 / nu)
+    # F statistics under poisoning
+    F = ((R1-R2)/k)/(R2 / nu)
     print(f'T: {sample_size} - F: {F} - P: {1-scipystats.f.cdf(F, k, nu)}')
 
     AB_noU = X[1:].T @ np.linalg.pinv(X[:-1].T)
@@ -79,10 +82,12 @@ for id, sample_size in enumerate(samples):
     R1 = np.power(X[1:] - Y1.T, 2).sum()
     R2 = np.power(X[1:] - Y2.T, 2).sum()
     residuals_orig = R2
-    F = ((R1-R2)/k)/(  R2 / nu)
+    # F statistics without poisoning
+    F = ((R1-R2)/k)/(R2 / nu)
     print(f'T: {sample_size} - F: {F} - P: {1-scipystats.f.cdf(F, k, nu)}')
 
     
+    # Compute confidence intervals
     data_pois = np.vstack([X[:-1].T, AttackU.T])
     data_orig = np.vstack([X[:-1].T, U.T])
 
@@ -98,6 +103,7 @@ for id, sample_size in enumerate(samples):
     eigenvalues_pois, eigenvectors_pois = np.linalg.eig(cov_pois)
     eigenvalues_orig, eigenvectors_orig = np.linalg.eig(cov_orig)
 
+    # Plot ellipsoids
     theta = np.linspace(0, 2*np.pi, 1000)
     ellipsis = AB.T+ (np.sqrt(eigenvalues_orig[None,:]) * eigenvectors_orig) @ [np.sin(theta), np.cos(theta)]
     ax[id].plot(ellipsis[0,:], ellipsis[1,:], label='Original')

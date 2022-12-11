@@ -10,7 +10,7 @@ Code for the paper [_Analysis and Detectability of Offline Data Poisoning Attack
 
 ## Requirements
 
-To run the examples you need the following libraries: `numpy scipy cvxpy dccp momentchi2 torch matplotlib`
+To run the examples you need the following libraries: `numpy scipy cvxpy dccp momentchi2 torch matplotlib`. See also the requirements file `requirements.txt`.
 
 ## Input poisoning attack
 
