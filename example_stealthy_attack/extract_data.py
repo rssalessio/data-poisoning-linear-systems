@@ -2,8 +2,8 @@ from utils import collect_data
 import scipy.signal as scipysig
 import pickle
 
-
 if __name__ == '__main__':
+    # Collect a set of unpoisoned data from the system
     dt = 0.05
     num = [0.28261, 0.50666]
     den = [1, -1.41833, 1.58939, -1.31608, 0.88642]

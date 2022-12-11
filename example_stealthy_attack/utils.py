@@ -6,7 +6,6 @@ from scipy.stats import chi2
 from typing import Tuple, List, NamedTuple
 from momentchi2 import hbe
 
-
 class CollectedData(NamedTuple):
     X: np.ndarray
     U: np.ndarray
@@ -19,6 +18,7 @@ class TestStatistics(NamedTuple):
     pvalue: float
 
 def collect_data(steps: int, std_u: float, std_w: float, sys: scipysig.StateSpace) -> Tuple[np.ndarray, np.ndarray]:
+    """ Collect data from a system """
     dim_x, dim_u = sys.B.shape
     U = np.zeros((dim_u, steps))
     X = np.zeros((dim_x, steps + 1))
@@ -33,6 +33,7 @@ def collect_data(steps: int, std_u: float, std_w: float, sys: scipysig.StateSpac
     return CollectedData(X, U, W, std_u, std_w)
 
 def correlate(x: np.ndarray, num_lags: int) -> np.ndarray:
+    """Correlate a signal"""
     n, T = x.shape
     R = np.zeros((num_lags,n,n))
 
@@ -43,9 +44,8 @@ def correlate(x: np.ndarray, num_lags: int) -> np.ndarray:
     
     return R/T
 
-
-
 def torch_correlate(x: torch.Tensor, num_lags: int) -> List[torch.Tensor]:
+    """Correlate a signal x using torch"""    
     n, T = x.shape
     R = []
 
@@ -64,7 +64,17 @@ def whiteness_test(residuals: np.ndarray, num_lags: int) -> float:
     return statistics
 
 
-def pvalue_whiteness_test(R: np.ndarray, num_lags: int, T: int) -> Tuple[float,float]:
+def pvalue_whiteness_test(R: np.ndarray, num_lags: int, T: int) -> TestStatistics:
+    """Run whiteness test on the residuals
+
+    Args:
+        R (np.ndarray): correlation matrices, should be of shape (L,n,n), where L is the number of lags
+        num_lags (int): number of lags to use to run the test. Should be lower than L
+        T (int): Horizon length
+
+    Returns:
+        TestStatistics: Return the statistics of the test
+    """    
     R_lags, dim_x, _ = R.shape
     assert R_lags > num_lags, f"R has been computed only for {R_lags} lags, not for {num_lags} lags."
     df = (T-dim_x-1) * (dim_x ** 2)

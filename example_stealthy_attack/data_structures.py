@@ -5,6 +5,7 @@ from utils import TestStatistics
 
 
 class UnpoisonedDataInfo(NamedTuple):
+    # Data structure used to collect statistics from unpoisoned data
     X: np.ndarray
     U: np.ndarray
     R: np.ndarray
@@ -31,6 +32,7 @@ class UnpoisonedDataInfo(NamedTuple):
 
 
 class AttackData(NamedTuple):
+    # Information about an attack and its statistics
     unpoisoned_data: UnpoisonedDataInfo
     DeltaU: torch.Tensor
     DeltaX: torch.Tensor
