@@ -27,11 +27,18 @@ class Population(ABC):
     @abstractmethod
     def update(self, elite_points: List[Tuple[float, np.ndarray]], *args):
         raise NotImplementedError
+    
+    @abstractmethod
+    def should_stop(self, threshold: float) -> bool:
+        raise NotImplementedError
 
 
 class GaussianPopulation(Population):
     """
     Define a Gaussian population used by the CEM method
+    Args:
+        means (np.ndarray[float]): initial mean vector, of size n
+        covariance (np.ndarray[float]): initial covariance, of shape (n,n)
     """    
     means: np.ndarray
     covariance: np.ndarray
@@ -59,6 +66,9 @@ class GaussianPopulation(Population):
         # Smooth update of means and covariance
         self.means = (1 - smoothed_update) * self.means + smoothed_update * new_mean
         self.covariance = (1 - smoothed_update) * self.covariance + smoothed_update * (new_cov + regularization * np.eye(self.dim))
+
+    def should_stop(self, threshold: float) -> bool:
+        return np.linalg.norm(self.covariance, ord=2) < threshold
 
 
 def evaluate_population(
@@ -106,7 +116,8 @@ def optimize(
     max_iterations: int = 1000,
     rel_tol: float = 1e-4,
     abs_tol: float = 1e-6,
-    elite_fraction: float = 0.2) -> Tuple[float, np.ndarray]:
+    elite_fraction: float = 0.2,
+    threshold: float = 1e-2) -> Tuple[float, np.ndarray]:
     """Optimize a function using the CEM method
 
     Args:
@@ -118,6 +129,7 @@ def optimize(
         abs_tol (float, optional): absolute tolerance. Defaults to 1e-6.
         elite_fraction (float, optional): Fraction of best results used by the CEM method to update
             the population. Defaults to 0.2.
+        threshold (float, optional): Stop the algorithm when the population has reached the given threshold
 
     Returns:
         Tuple[float, np.ndarray]: Tuple (best results, best parameters)
@@ -138,7 +150,7 @@ def optimize(
             best_result = _best[0]
             best_params = _best[1]
 
-            if np.isclose(best_result, prev_best_result, rtol = rel_tol, atol = abs_tol):
-                break
+        if population.should_stop(threshold):
+            break
     
     return best_result, best_params
