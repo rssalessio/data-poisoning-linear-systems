@@ -30,7 +30,8 @@ B = np.array([[0.5]])
 dim_x = 1
 dim_u = 1
 
-std_w = 0.1
+# CHANGE THE PROCESS NOISE HERE
+std_w = 10
 std_u = 1
 samples = [30, 100, 1000]
 
