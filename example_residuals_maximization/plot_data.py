@@ -205,4 +205,4 @@ labels = ["Method:"] + l  # Merging labels
 
 plt.legend(handles, labels, bbox_to_anchor=(0.750, 0.875), loc="lower right",
                 bbox_transform=fig.transFigure, ncol=4, frameon=False)
-plt.savefig('figures/example_residuals_variance.png',bbox_inches='tight',dpi=300)
+plt.savefig('figures/example_residuals_variance.pdf',bbox_inches='tight',dpi=300)

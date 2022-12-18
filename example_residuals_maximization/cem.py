@@ -114,8 +114,7 @@ def optimize(
     population: Population,
     num_points: int,
     max_iterations: int = 1000,
-    rel_tol: float = 1e-4,
-    abs_tol: float = 1e-6,
+    rtol: float = 1e-4,
     elite_fraction: float = 0.2,
     threshold: float = 1e-2) -> Tuple[float, np.ndarray]:
     """Optimize a function using the CEM method
@@ -125,8 +124,7 @@ def optimize(
         population (Population): Population to use to optimize the function
         num_points (int): Number of points to evaluate in each iteration
         max_iterations (int, optional): maximum number of iterations. Defaults to 1000.
-        rel_tol (float, optional): relative tolerance. Defaults to 1e-4.
-        abs_tol (float, optional): absolute tolerance. Defaults to 1e-6.
+        rtol (float, optional): relative tolerance. Defaults to 1e-4.
         elite_fraction (float, optional): Fraction of best results used by the CEM method to update
             the population. Defaults to 0.2.
         threshold (float, optional): Stop the algorithm when the population has reached the given threshold
@@ -151,6 +149,7 @@ def optimize(
             best_params = _best[1]
 
         if population.should_stop(threshold):
-            break
+            if np.isclose(best_result, prev_best_result, rtol = rtol, atol = 0):
+                break
     
     return best_result, best_params
