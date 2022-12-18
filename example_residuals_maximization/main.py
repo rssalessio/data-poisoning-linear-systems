@@ -21,10 +21,16 @@ dim_x, dim_u = sys.B.shape
 
 # Simulation parameters
 T = 200
-NUM_SIMS = 30
+NUM_SIMS = 100
 NUM_RANDOM_POINTS = 50
 NUM_GAUSSIAN_RANDOM_POINTS = 100
-NUM_CPUS = 4
+CEM_MAX_ITERATIONS = 500
+CEM_THRESHOLD = 1.5
+CEM_ELITE_FRACTION = 0.1
+NUM_CPUS = 8
+NUM_DELTAS = 50
+MIN_DELTA = 1e-4
+MAX_DELTA = 1e-1
 std_w = 1e-1
 std_u = 1
 
@@ -46,7 +52,7 @@ def evaluate_attack(true_residuals: np.ndarray, AB: np.ndarray, DeltaX: np.ndarr
 
 
 # Delta used by the attack
-deltas = np.geomspace(1e-4, 1e-1, 10)
+deltas = np.geomspace(MIN_DELTA, MAX_DELTA, NUM_DELTAS)
 
 
 def run_simulation(id_sim: int):
@@ -77,7 +83,7 @@ def run_simulation(id_sim: int):
             cp.norm(DeltaU, 'fro') <= delta * np.linalg.norm(U, 'fro') 
         ]
         problem = cp.Problem(cp.Maximize(objective), constraints)
-        result = problem.solve(method='dccp', ccp_times=10, solver=cp.MOSEK)
+        result = problem.solve(method='dccp', ccp_times=5, solver=cp.MOSEK)
 
         res.opt_DeltaX[idx_delta] = DeltaX.value
         res.opt_DeltaU[idx_delta] = DeltaU.value
@@ -117,7 +123,7 @@ def run_simulation(id_sim: int):
 
         for i in range(10):
             try:
-                best_val, best_p = cem.optimize(_func, guassian_population, num_points=NUM_RANDOM_POINTS, max_iterations=500, threshold=1e-2)
+                best_val, best_p = cem.optimize(_func, guassian_population, num_points=NUM_RANDOM_POINTS, max_iterations=CEM_MAX_ITERATIONS, threshold=CEM_THRESHOLD, elite_fraction=CEM_ELITE_FRACTION)
                 DeltaX, DeltaU = _obtain_attack(best_p)
                 break
             except Exception as e:
